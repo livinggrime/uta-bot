@@ -61,52 +61,77 @@ const server = http.createServer(async (req, res) => {
             // Send success page
             res.writeHead(200, { 'Content-Type': 'text/html' });
             res.end(`
+                <!DOCTYPE html>
                 <html>
                 <head>
-                    <title>Last.fm Authorization Successful</title>
+                    <title>Authorization Successful</title>
+                    <meta name="viewport" content="width=device-width, initial-scale=1">
+                    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
                     <style>
                         body {
-                            font-family: Arial, sans-serif;
+                            font-family: 'Inter', sans-serif;
                             display: flex;
                             justify-content: center;
                             align-items: center;
                             height: 100vh;
                             margin: 0;
-                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                            background-color: #0f0f0f;
+                            color: white;
                         }
                         .container {
-                            background: white;
-                            padding: 40px;
-                            border-radius: 10px;
-                            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+                            background: #1a1a1a;
+                            padding: 48px;
+                            border-radius: 24px;
+                            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
                             text-align: center;
-                            max-width: 500px;
+                            max-width: 400px;
+                            width: 90%;
+                            border: 1px solid #333;
+                        }
+                        .icon {
+                            font-size: 64px;
+                            margin-bottom: 24px;
+                            background: linear-gradient(135deg, #ff4b2b 0%, #ff416c 100%);
+                            -webkit-background-clip: text;
+                            -webkit-text-fill-color: transparent;
                         }
                         h1 {
-                            color: #d51007;
-                            margin-bottom: 20px;
+                            font-size: 28px;
+                            font-weight: 700;
+                            margin: 0 0 12px 0;
+                            letter-spacing: -0.5px;
                         }
                         p {
-                            color: #666;
-                            font-size: 18px;
-                            margin-bottom: 10px;
+                            color: #a0a0a0;
+                            font-size: 16px;
+                            line-height: 1.6;
+                            margin-bottom: 32px;
                         }
                         .username {
-                            color: #667eea;
-                            font-weight: bold;
+                            color: #ff4b2b;
+                            font-weight: 600;
                         }
-                        .success-icon {
-                            font-size: 60px;
-                            margin-bottom: 20px;
+                        .btn {
+                            display: block;
+                            background: linear-gradient(135deg, #ff4b2b 0%, #ff416c 100%);
+                            color: white;
+                            text-decoration: none;
+                            padding: 14px 28px;
+                            border-radius: 12px;
+                            font-weight: 600;
+                            transition: transform 0.2s;
+                        }
+                        .btn:hover {
+                            transform: translateY(-2px);
                         }
                     </style>
                 </head>
                 <body>
                     <div class="container">
-                        <div class="success-icon">✅</div>
-                        <h1>Authorization Successful!</h1>
-                        <p>Your Last.fm account <span class="username">${username}</span> has been linked.</p>
-                        <p>You can now close this window and return to Discord.</p>
+                        <div class="icon">✓</div>
+                        <h1>Linked!</h1>
+                        <p>Your Last.fm account <span class="username">${username}</span> has been successfully connected to Discord.</p>
+                        <p style="font-size: 14px; margin-bottom: 0;">You can safely close this tab now.</p>
                     </div>
                 </body>
                 </html>
@@ -119,47 +144,67 @@ const server = http.createServer(async (req, res) => {
 
             res.writeHead(500, { 'Content-Type': 'text/html' });
             res.end(`
+                <!DOCTYPE html>
                 <html>
                 <head>
-                    <title>Last.fm Authorization Failed</title>
+                    <title>Authorization Failed</title>
+                    <meta name="viewport" content="width=device-width, initial-scale=1">
+                    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
                     <style>
                         body {
-                            font-family: Arial, sans-serif;
+                            font-family: 'Inter', sans-serif;
                             display: flex;
                             justify-content: center;
                             align-items: center;
                             height: 100vh;
                             margin: 0;
-                            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+                            background-color: #0f0f0f;
+                            color: white;
                         }
                         .container {
-                            background: white;
-                            padding: 40px;
-                            border-radius: 10px;
-                            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+                            background: #1a1a1a;
+                            padding: 48px;
+                            border-radius: 24px;
+                            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
                             text-align: center;
-                            max-width: 500px;
+                            max-width: 400px;
+                            width: 90%;
+                            border: 1px solid #333;
+                        }
+                        .icon {
+                            font-size: 64px;
+                            margin-bottom: 24px;
+                            color: #ff4b2b;
                         }
                         h1 {
-                            color: #f5576c;
-                            margin-bottom: 20px;
+                            font-size: 28px;
+                            font-weight: 700;
+                            margin: 0 0 12px 0;
+                            letter-spacing: -0.5px;
                         }
                         p {
-                            color: #666;
+                            color: #a0a0a0;
                             font-size: 16px;
+                            line-height: 1.6;
+                            margin-bottom: 32px;
                         }
-                        .error-icon {
-                            font-size: 60px;
-                            margin-bottom: 20px;
+                        .btn {
+                            display: inline-block;
+                            background: #333;
+                            color: white;
+                            text-decoration: none;
+                            padding: 14px 28px;
+                            border-radius: 12px;
+                            font-weight: 600;
                         }
                     </style>
                 </head>
                 <body>
                     <div class="container">
-                        <div class="error-icon">❌</div>
-                        <h1>Authorization Failed</h1>
-                        <p>There was an error linking your Last.fm account.</p>
-                        <p>Please try again using the /setfm command.</p>
+                        <div class="icon">✕</div>
+                        <h1>Link Failed</h1>
+                        <p>There was an error connecting your account. Please head back to Discord and try again.</p>
+                        <a href="#" class="btn" onclick="window.close()">Close Tab</a>
                     </div>
                 </body>
                 </html>

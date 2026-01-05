@@ -1,10 +1,10 @@
 import { SlashCommandBuilder, EmbedBuilder, MessageFlags } from 'discord.js';
-import { getUserInfo, getImageUrl } from '../../libs/lastfm';
+import { getUserInfo, getImageUrl, getTopArtists } from '../../libs/lastfm';
 import { getUserData } from '../../libs/userdata';
 
 
 export default {
-    aliases: ['pr'],
+    aliases: ['pr', 'p'],
     cooldown: 5,
     data: new SlashCommandBuilder()
         .setName('profile')
@@ -20,7 +20,7 @@ export default {
 
         if (!userData) {
             await context.reply({
-                content: `❌ ${targetUser.id === context.user.id ? 'You haven\'t' : `${targetUser.username} hasn't`} linked a Last.fm account yet. Use \`/setfm\` to link one.`,
+                content: `❌ ${targetUser.id === context.user.id ? 'You haven\'t' : `${targetUser.username} hasn't`} linked a Last.fm account yet. Use \`/link\` to link one.`,
                 flags: MessageFlags.Ephemeral,
             });
             return;
@@ -29,35 +29,42 @@ export default {
         await context.deferReply();
 
         try {
-            const userInfo = await getUserInfo(userData.username);
+            const [userInfo, topArtists] = await Promise.all([
+                getUserInfo(userData.username),
+                getTopArtists(userData.username, 'overall', 3)
+            ]);
 
             const scrobbles = parseInt(userInfo.playcount).toLocaleString();
             const profileImage = getImageUrl(userInfo.image);
 
             const embed = new EmbedBuilder()
-                .setColor(0xba0000)
+                .setColor(0xd51007)
                 .setAuthor({
-                    name: `${targetUser.username}'s Last.fm Profile`,
+                    name: `${targetUser.username} (${userData.username})`,
                     iconURL: targetUser.displayAvatarURL(),
+                    url: userInfo.url
                 })
-                .setTitle(userInfo.name)
-                .setURL(userInfo.url)
                 .addFields(
-                    { name: '📊 Total Scrobbles', value: scrobbles, inline: true },
+                    { name: '📊 Scrobbles', value: `**${scrobbles}**`, inline: true },
                     { name: '📅 Member Since', value: `<t:${userInfo.registered.unixtime}:D>`, inline: true }
                 );
+
+            if (topArtists.length > 0) {
+                const artistList = topArtists.map((a, i) => `${i + 1}. **${a.name}** (${parseInt(a.playcount).toLocaleString()} plays)`).join('\n');
+                embed.addFields({ name: '🔝 Top Artists', value: artistList });
+            }
 
             if (userInfo.country) {
                 embed.addFields({ name: '🌍 Country', value: userInfo.country, inline: true });
             }
 
-            if (userInfo.realname) {
-                embed.addFields({ name: '👤 Real Name', value: userInfo.realname, inline: false });
-            }
-
             if (profileImage) {
                 embed.setThumbnail(profileImage);
             }
+
+            embed.setFooter({ text: 'Last.fm Profile • Use /chart for a visual grid' });
+
+            await context.editReply({ embeds: [embed] });
 
             embed.setFooter({ text: `Last.fm • ${userData.username}` });
 

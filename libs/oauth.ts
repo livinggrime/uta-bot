@@ -129,6 +129,33 @@ export async function getSessionKey(token: string): Promise<{ sessionKey: string
 }
 
 /**
+ * Polling function similar to fmbot's implementation.
+ * Automatically checks if the user has authorized the token.
+ */
+export async function pollForSession(token: string, maxAttempts = 11): Promise<{ sessionKey: string; username: string } | null> {
+    let delay = 6000;
+
+    for (let i = 0; i < maxAttempts; i++) {
+        // Wait for the current delay
+        await new Promise(resolve => setTimeout(resolve, delay));
+
+        try {
+            const result = await getSessionKey(token);
+            if (result && result.sessionKey) {
+                return result;
+            }
+        } catch (error) {
+            // Last.fm returns an error if the token has not been authorized yet.
+            // i.e. "Unauthorized Token - This token has not been authorized" (Error code 14)
+            // We increase the delay by 3 seconds before the next attempt, just like fmbot.
+            delay += 3000;
+        }
+    }
+
+    return null;
+}
+
+/**
  * Scrobble a track to Last.fm
  */
 export async function scrobbleTrack(

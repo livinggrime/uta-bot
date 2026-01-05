@@ -63,3 +63,19 @@ export async function getUserData(discordUserId: string): Promise<UserData | nul
         return null;
     }
 }
+
+/**
+ * Counts how many OTHER Discord users are linked to a specific Last.fm username.
+ * Used for alt-detection/limit enforcement.
+ */
+export async function countAltsByFmUsername(username: string, excludeDiscordId: string): Promise<number> {
+    try {
+        return await User.countDocuments({
+            username: { $regex: new RegExp(`^${username}$`, 'i') },
+            discordUserId: { $ne: excludeDiscordId }
+        });
+    } catch (error) {
+        console.error(`Error counting alts for ${username}:`, error);
+        return 0;
+    }
+}

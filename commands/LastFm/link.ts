@@ -1,6 +1,7 @@
 import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } from 'discord.js';
-import { getAuthToken, getAuthorizationUrl } from '../../libs/oauth';
+import { getAuthToken, getAuthorizationUrl, pollForSession } from '../../libs/oauth';
 import { registerPendingAuth } from '../../oauth-server';
+import { saveUser, countAltsByFmUsername } from '../../libs/userdata';
 
 
 export default {
@@ -50,40 +51,152 @@ export default {
             const embed = new EmbedBuilder()
                 .setColor(0xd51007)
                 .setTitle('🔐 Last.fm Authorization')
-                .setDescription('Click the button below to authorize this bot to access your Last.fm account.\n\n**If the page fails to load after clicking "Allow Access":**\nCopy the `token` from the URL address bar and use `/token token:YOUR_TOKEN` here in Discord.')
+                .setDescription('1. Click **Authorize on Last.fm** below.\n2. Click "Allow Access" on the website.\n3. You should be redirected automatically.\n\n**If it doesn\'t redirect:**\nClick the **Confirm Connection** button below after you have allowed access.')
                 .addFields(
                     { name: '⏱️ Expires In', value: '5 minutes', inline: true },
-                    { name: '🔒 Permissions', value: 'Read & Write (Scrobbling)', inline: true }
+                    { name: '🔒 Permissions', value: 'Read & Write', inline: true }
                 )
                 .setFooter({ text: 'You will be redirected to Last.fm to authorize' });
 
-            const button = new ButtonBuilder()
+            const authBtn = new ButtonBuilder()
                 .setLabel('Authorize on Last.fm')
                 .setStyle(ButtonStyle.Link)
                 .setURL(authUrl);
 
-            const row = new ActionRowBuilder<ButtonBuilder>().addComponents(button);
+            const confirmBtn = new ButtonBuilder()
+                .setCustomId(`confirm_${token}`)
+                .setLabel('Confirm Connection')
+                .setStyle(ButtonStyle.Secondary);
 
-            await context.editReply({
+            const row = new ActionRowBuilder<ButtonBuilder>().addComponents(authBtn, confirmBtn);
+
+            const response = await context.editReply({
                 embeds: [embed],
                 components: [row],
             });
 
-            // Wait for authorization (with 5 minute timeout)
-            const success = await authPromise;
+            // Create a collector for the confirm button
+            const collector = response.createMessageComponentCollector({
+                filter: (i: any) => i.customId === `confirm_${token}` && i.user.id === context.user.id,
+                time: 5 * 60 * 1000,
+            });
 
-            if (success) {
+            collector.on('collect', async (i: any) => {
+                await i.deferUpdate();
+                // We just need to trigger the resolve in the pendingAuths map
+                const pending = (registerPendingAuth as any).pendingAuths?.get(token);
+                // Actually, registerPendingAuth returns a promise, we should just let it resolve naturally
+                // or we can manually trigger the flow here. 
+                // Let's use the token command's logic essentially.
+                try {
+                    const { getSessionKey } = await import('../../libs/oauth');
+                    const { sessionKey, username } = await getSessionKey(token);
+                    const { saveUser } = await import('../../libs/userdata');
+
+                    await saveUser(context.user.id, {
+                        username,
+                        sessionKey,
+                        authorizedAt: new Date().toISOString(),
+                    });
+
+                    const successEmbed = new EmbedBuilder()
+                        .setColor(0x00ff00)
+                        .setTitle('✅ Manual Confirmation Successful!')
+                        .setDescription(`Your Last.fm account **${username}** has been linked.`)
+                        .setFooter({ text: 'Setup complete' });
+
+                    await context.followUp({
+                        embeds: [successEmbed],
+                        flags: MessageFlags.Ephemeral,
+                    });
+
+                    collector.stop('success');
+                } catch (err) {
+                    await i.followUp({
+                        content: '❌ No authorization found yet. Please make sure you clicked "Allow Access" on the Last.fm website first.',
+                        flags: MessageFlags.Ephemeral,
+                    });
+                }
+            });
+
+            // Start polling in the background (fmbot style)
+            const pollPromise = pollForSession(token);
+
+            /**
+             * Helper to handle the successful retrieval of a session (fmbot style)
+             */
+            const processAuth = async (sessionData: { sessionKey: string; username: string }, source: string) => {
+                const MAX_OTHER_ACCOUNTS = 2; // Allow up to 2 other Discord accounts (Total 3)
+                const otherAccounts = await countAltsByFmUsername(sessionData.username, context.user.id);
+
+                if (otherAccounts > MAX_OTHER_ACCOUNTS) {
+                    const altEmbed = new EmbedBuilder()
+                        .setColor(0xffa500)
+                        .setTitle('⚠️ Too Many Accounts')
+                        .setDescription(`The Last.fm account **${sessionData.username}** is already linked to ${otherAccounts} other Discord accounts.\n\nTo prevent abuse, you cannot link more than ${MAX_OTHER_ACCOUNTS + 1} accounts to a single Last.fm user.`)
+                        .setFooter({ text: 'Account Limit Reached' });
+
+                    await context.followUp({
+                        embeds: [altEmbed],
+                        flags: MessageFlags.Ephemeral,
+                    });
+                    return false;
+                }
+
+                await saveUser(context.user.id, {
+                    username: sessionData.username,
+                    sessionKey: sessionData.sessionKey,
+                    authorizedAt: new Date().toISOString(),
+                });
+
                 const successEmbed = new EmbedBuilder()
                     .setColor(0x00ff00)
                     .setTitle('✅ Authorization Successful!')
-                    .setDescription('Your Last.fm account has been linked. You can now use all Last.fm commands, including scrobbling!')
-                    .setFooter({ text: 'You can now close the authorization window' });
+                    .setDescription(`Your Last.fm account has been linked! You can now use all commands, including scrobbling.\n\n*${source === 'poll' ? 'Detected automatically' : source === 'manual' ? 'Manually confirmed' : 'Verified via redirect'}*`)
+                    .setFooter({ text: 'Last.fm Connection' });
 
                 await context.followUp({
                     embeds: [successEmbed],
                     flags: MessageFlags.Ephemeral,
                 });
-            } else {
+
+                collector.stop('success');
+                return true;
+            };
+
+            // Update collector to use the helper
+            collector.on('collect', async (i: any) => {
+                await i.deferUpdate();
+                try {
+                    const { getSessionKey } = await import('../../libs/oauth');
+                    const sessionData = await getSessionKey(token);
+                    await processAuth(sessionData, 'manual');
+                } catch (err) {
+                    await i.followUp({
+                        content: '❌ No authorization found yet. Please make sure you clicked "Allow Access" on the Last.fm website first.',
+                        flags: MessageFlags.Ephemeral,
+                    });
+                }
+            });
+
+            // Wait for authorization (either from redirect or automatic polling)
+            const result = await Promise.race([
+                authPromise.then(success => success ? 'redirect' : null),
+                pollPromise.then(res => res ? 'poll' : null)
+            ]);
+
+            if (result) {
+                if (result === 'poll') {
+                    const data = await pollPromise;
+                    if (data) await processAuth(data, 'poll');
+                } else if (result === 'redirect') {
+                    // When redirected, the session is already in DB via oauth-server, 
+                    // but we call processAuth to show the message (it will handle the upsert gracefully)
+                    const { getSessionKey } = await import('../../libs/oauth');
+                    const sessionData = await getSessionKey(token);
+                    await processAuth(sessionData, 'redirect');
+                }
+            } else if (collector.ended && !result) {
                 const failEmbed = new EmbedBuilder()
                     .setColor(0xff0000)
                     .setTitle('❌ Authorization Failed')
@@ -96,6 +209,7 @@ export default {
                 });
             }
         } catch (error: any) {
+
             console.error('Error in link command:', error);
             await context.editReply({
                 content: '❌ Error initiating Last.fm authorization. Please try again later.',

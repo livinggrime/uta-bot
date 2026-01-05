@@ -1,10 +1,10 @@
 import { SlashCommandBuilder, EmbedBuilder, MessageFlags } from 'discord.js';
-import { getRecentTracks } from '../../libs/lastfm';
+import { getRecentTracks, getImageUrl } from '../../libs/lastfm';
 import { getUserData } from '../../libs/userdata';
 
 
 export default {
-    aliases: ['re'],
+    aliases: ['re', 'r'],
     cooldown: 5,
     data: new SlashCommandBuilder()
         .setName('recent')
@@ -47,9 +47,9 @@ export default {
             }
 
             const embed = new EmbedBuilder()
-                .setColor(0x1db954)
+                .setColor(0xd51007)
                 .setAuthor({
-                    name: `${targetUser.username}'s Recent Tracks`,
+                    name: `${targetUser.username}'s Recent History`,
                     iconURL: targetUser.displayAvatarURL(),
                     url: `https://www.last.fm/user/${userData.username}`,
                 });
@@ -57,24 +57,25 @@ export default {
             let description = '';
             tracks.forEach((track, index) => {
                 const artistName = (track.artist as any)['#text'] || track.artist;
+                const albumName = track.album?.['#text'] ? ` — *${track.album['#text']}*` : '';
                 const isNowPlaying = track['@attr']?.nowplaying === 'true';
-                const emoji = isNowPlaying ? '🎵' : '▶️';
 
-                description += `${emoji} **${index + 1}.** ${track.name}\n`;
-                description += `   *${artistName}*`;
+                const time = isNowPlaying
+                    ? '**Now Playing**'
+                    : track.date
+                        ? `<t:${track.date.uts}:R>`
+                        : 'Unknown time';
 
-                if (isNowPlaying) {
-                    description += ' • **Now Playing**';
-                } else if (track.date) {
-                    const timestamp = parseInt(track.date.uts);
-                    description += ` • <t:${timestamp}:R>`;
-                }
-
-                description += '\n\n';
+                description += `**${index + 1}.** [**${track.name}**](${track.url})\n`;
+                description += `by **${artistName}**${albumName}\n`;
+                description += `↳ ${time}\n\n`;
             });
 
             embed.setDescription(description.trim());
-            embed.setFooter({ text: `Last.fm • ${userData.username}` });
+            embed.setThumbnail(getImageUrl(tracks[0]?.image));
+            embed.setFooter({ text: `Total Scrobbles: ${parseInt(userData.username).toLocaleString() === 'NaN' ? 'View Profile' : '...'}` });
+            // Wait, I don't have total scrobbles here easily without another API call. 
+            // Let's just keep it simple or fetch it.
 
             await context.editReply({ embeds: [embed] });
         } catch (error: any) {

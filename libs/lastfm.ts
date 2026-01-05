@@ -63,6 +63,7 @@ export interface LastFmUser {
     url: string;
     country?: string;
     playcount: string;
+    artist_count?: string;
     registered: {
         unixtime: string;
         '#text': number;
@@ -207,6 +208,36 @@ export async function getArtistInfo(artist: string, username?: string): Promise<
 
     const data = await makeRequest(params);
     return data.artist;
+}
+
+export async function getAlbumInfo(artist: string, album: string, username?: string): Promise<any> {
+    const params: Record<string, string> = {
+        method: 'album.getinfo',
+        artist: artist,
+        album: album,
+    };
+
+    if (username) {
+        params.username = username;
+    }
+
+    const data = await makeRequest(params);
+    return data.album;
+}
+
+export async function getTrackInfo(artist: string, track: string, username?: string): Promise<any> {
+    const params: Record<string, string> = {
+        method: 'track.getinfo',
+        artist: artist,
+        track: track,
+    };
+
+    if (username) {
+        params.username = username;
+    }
+
+    const data = await makeRequest(params);
+    return data.track;
 }
 
 export function getImageUrl(images?: Array<{ '#text': string; size: string }>): string | null {
