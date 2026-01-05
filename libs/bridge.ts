@@ -25,6 +25,7 @@ export interface CommandContext {
         getUser: (name: string) => User | null;
         getString: (name: string) => string | null;
         getInteger: (name: string) => number | null;
+        getSubcommand: () => string | null;
     }
 }
 
@@ -116,6 +117,10 @@ export function createCommandContext(input: ChatInputCommandInteraction | Messag
                 if (isInteraction) return input.options.getInteger(name);
                 const val = args[0] ? parseInt(args[0]) : NaN;
                 return isNaN(val) ? null : val;
+            },
+            getSubcommand: () => {
+                if (isInteraction) return input.options.getSubcommand();
+                return args[0] || null;
             }
         }
     };

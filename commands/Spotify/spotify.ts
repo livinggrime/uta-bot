@@ -15,6 +15,19 @@ export default {
     async execute(context: any) {
         const subcommand = context.options.getSubcommand();
 
+        if (!subcommand) {
+            const embed = new EmbedBuilder()
+                .setColor(0x1DB954)
+                .setTitle('Spotify Commands')
+                .setDescription('Control your Spotify playback from Discord.')
+                .addFields(
+                    { name: 'Login', value: '`/spotify login` - Link your account' },
+                    { name: 'Playback', value: '`/spotify play`, `/spotify pause`, `/spotify resume`' },
+                    { name: 'Info', value: '`/spotify nowplaying`' }
+                );
+            return context.reply({ embeds: [embed] });
+        }
+
         if (subcommand === 'login') {
             const url = getSpotifyAuthorizationUrl(context.user.id);
             const embed = new EmbedBuilder()
