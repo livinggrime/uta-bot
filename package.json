@@ -1,0 +1,22 @@
+{
+  "name": "uta",
+  "main": "uta.ts",
+  "private": true,
+  "scripts": {
+    "start": "bun .",
+    "lint": "eslint . --ext .ts",
+    "deletecommands": "bun deletecommands.ts",
+    "deploycommands": "bun deploycommands.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "eslint": "^9.39.2"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "discord.js": "^14.25.1",
+    "dotenv": "^17.2.3"
+  }
+}
