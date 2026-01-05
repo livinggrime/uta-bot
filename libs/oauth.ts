@@ -104,7 +104,9 @@ export async function getAuthToken(): Promise<string> {
  * Step 2: Generate authorization URL for user
  */
 export function getAuthorizationUrl(token: string): string {
-    return `https://www.last.fm/api/auth/?api_key=${FMKEY}&token=${token}`;
+    const callback = process.env.OAUTH_CALLBACK_URL;
+    const cbParam = callback ? `&cb=${encodeURIComponent(callback)}` : '';
+    return `https://www.last.fm/api/auth/?api_key=${FMKEY}&token=${token}${cbParam}`;
 }
 
 /**
