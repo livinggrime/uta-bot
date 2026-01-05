@@ -18,8 +18,11 @@ const pendingAuths = new Map<string, PendingAuth>();
 
 const server = http.createServer(async (req, res) => {
     const url = new URL(req.url || '', `http://localhost:${PORT}`);
+    const pathname = url.pathname.replace(/\/$/, '');
 
-    if (url.pathname === '/callback') {
+    console.log(`[HTTP] ${req.method} ${url.pathname}`);
+
+    if (pathname === '/callback') {
         const token = url.searchParams.get('token');
         console.log(`[OAuth] Received callback with token: ${token}`);
 
@@ -162,7 +165,7 @@ const server = http.createServer(async (req, res) => {
                 </html>
             `);
         }
-    } else if (url.pathname === '/health') {
+    } else if (pathname === '/health' || pathname === '') {
         res.writeHead(200, { 'Content-Type': 'text/plain' });
         res.end('OK');
     } else {
