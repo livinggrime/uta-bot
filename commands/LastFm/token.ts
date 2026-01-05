@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, EmbedBuilder, MessageFlags } from 'discord.js';
 import { getSessionKey } from '../../libs/oauth';
-import { loadUsers, saveUsers } from '../../libs/userdata';
+import { saveUser } from '../../libs/userdata';
 
 export default {
     aliases: ['confirmfm'],
@@ -28,14 +28,12 @@ export default {
             // Step 3: Exchange token for session key
             const { sessionKey, username } = await getSessionKey(token);
 
-            // Save the session
-            const users = loadUsers();
-            users[context.user.id] = {
+            // Save the session to MongoDB
+            await saveUser(context.user.id, {
                 username: username,
                 sessionKey: sessionKey,
                 authorizedAt: new Date().toISOString(),
-            };
-            saveUsers(users);
+            });
 
             const successEmbed = new EmbedBuilder()
                 .setColor(0x00ff00)

@@ -19,14 +19,12 @@ export default {
 
         // Handling Read-Only Mode (Manual Username)
         if (manualUsername) {
-            const { saveUsers, loadUsers } = await import('../../libs/userdata');
-            const users = loadUsers();
-            users[context.user.id] = {
+            const { saveUser } = await import('../../libs/userdata');
+            await saveUser(context.user.id, {
                 username: manualUsername,
                 sessionKey: '', // No session key for read-only
                 authorizedAt: new Date().toISOString(),
-            };
-            saveUsers(users);
+            });
 
             await context.reply({
                 content: `✅ Linked to **${manualUsername}** in **Read-Only** mode! You can view stats, but scrobbling is disabled. (Use \`/link\` without arguments for full access)`,

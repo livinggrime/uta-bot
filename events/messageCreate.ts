@@ -7,7 +7,7 @@ export default {
         if (message.author.bot) return;
         if (message.channel.type === ChannelType.DM) return;
 
-        const settings = getGuildSettings(message.guildId!);
+        const settings = await getGuildSettings(message.guildId!);
         const prefix = settings.prefix;
 
         if (!message.content.startsWith(prefix)) return;

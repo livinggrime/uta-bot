@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { Client, GatewayIntentBits, Partials, Collection } from "discord.js";
 import { startOAuthServer } from './oauth-server';
+import { connectToDatabase } from './libs/database';
 
 
 const TOKEN = process.env.TOKEN || '';
@@ -28,6 +29,9 @@ const client = new Client({
 
 client.commands = new Collection();
 client.cooldowns = new Collection();
+
+// Connect to MongoDB
+await connectToDatabase();
 
 client.login(TOKEN).catch((error) => {
     console.error('Error logging in:', error);

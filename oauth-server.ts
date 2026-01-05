@@ -1,10 +1,10 @@
 import http from 'http';
 import { URL } from 'url';
 import { getSessionKey } from './libs/oauth';
-import { loadUsers, saveUsers } from './libs/userdata';
+import { saveUser } from './libs/userdata';
 
 
-const PORT = parseInt(process.env.OAUTH_PORT || '3001');
+const PORT = parseInt(process.env.PORT || process.env.OAUTH_PORT || '3001');
 
 
 interface PendingAuth {
@@ -42,14 +42,12 @@ const server = http.createServer(async (req, res) => {
             // Exchange token for session key
             const { sessionKey, username } = await getSessionKey(token);
 
-            // Save session key
-            const users = loadUsers();
-            users[pending.discordUserId] = {
+            // Save user data to MongoDB
+            await saveUser(pending.discordUserId, {
                 username: username,
                 sessionKey: sessionKey,
                 authorizedAt: new Date().toISOString(),
-            };
-            saveUsers(users);
+            });
             console.log(`[OAuth] Successfully linked Last.fm account ${username} to Discord user ${pending.discordUserId}`);
 
 
@@ -164,6 +162,9 @@ const server = http.createServer(async (req, res) => {
                 </html>
             `);
         }
+    } else if (url.pathname === '/health') {
+        res.writeHead(200, { 'Content-Type': 'text/plain' });
+        res.end('OK');
     } else {
         res.writeHead(404, { 'Content-Type': 'text/plain' });
         res.end('Not Found');

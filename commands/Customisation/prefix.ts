@@ -25,7 +25,7 @@ export default {
             });
         }
 
-        const currentSettings = getGuildSettings(guildId);
+        const currentSettings = await getGuildSettings(guildId);
 
         if (!newPrefix) {
             const embed = new EmbedBuilder()
@@ -43,7 +43,7 @@ export default {
         }
 
         // Update the prefix
-        updateGuildSettings(guildId, { prefix: newPrefix });
+        await updateGuildSettings(guildId, { prefix: newPrefix });
 
         const successEmbed = new EmbedBuilder()
             .setColor(0x00ff00)

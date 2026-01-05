@@ -47,7 +47,7 @@ export default {
         const targetUser = context.options.getUser('user') || context.user;
         const period = context.options.getString('period') || 'overall';
         const limit = context.options.getInteger('limit') || 10;
-        const userData = getUserData(targetUser.id);
+        const userData = await getUserData(targetUser.id);
 
         if (!userData) {
             await context.reply({

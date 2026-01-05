@@ -21,7 +21,7 @@ export default {
                 .setRequired(false)
         ),
     async execute(context: any) {
-        const userData = getUserData(context.user.id);
+        const userData = await getUserData(context.user.id);
 
         if (!userData || !userData.sessionKey) {
             await context.reply({

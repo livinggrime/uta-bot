@@ -24,7 +24,7 @@ export default {
     async execute(context: any) {
         const targetUser = context.options.getUser('user') || context.user;
         const limit = context.options.getInteger('limit') || 10;
-        const userData = getUserData(targetUser.id);
+        const userData = await getUserData(targetUser.id);
 
         if (!userData) {
             await context.reply({

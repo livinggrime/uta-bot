@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, EmbedBuilder, MessageFlags } from 'discord.js';
 import { getArtistInfo, getNowPlaying, getImageUrl } from '../../libs/lastfm';
-import { loadUsers, UserData } from '../../libs/userdata';
+import { loadUsers, type UserData } from '../../libs/userdata';
 
 export default {
     aliases: ['wk'],
@@ -27,9 +27,11 @@ export default {
         await context.deferReply();
 
         try {
+            const allUsers = await loadUsers();
+
             // If no artist provided, try to get from user's now playing
             if (!artistName) {
-                const userData = loadUsers()[context.user.id];
+                const userData = allUsers[context.user.id];
                 if (userData) {
                     const np = await getNowPlaying(userData.username);
                     if (np) {
@@ -43,8 +45,6 @@ export default {
                     content: '❌ Please provide an artist name or be currently playing something.'
                 });
             }
-
-            const allUsers = loadUsers();
 
             // For guild members, we need to handle interaction vs message
             const guild = context.interaction?.guild || context.message?.guild;

@@ -1,47 +1,63 @@
-import fs from 'node:fs';
-import path from 'node:path';
-
-const GUILDS_FILE = path.join(__dirname, '../guild-settings.json');
+import Guild, { IGuild } from './models/Guild';
 
 export interface GuildSettings {
     prefix: string;
 }
 
 const DEFAULT_SETTINGS: GuildSettings = {
-    prefix: '!',
+    prefix: '~',
 };
 
-export function loadAllGuildSettings(): Record<string, GuildSettings> {
+/**
+ * Loads all guild settings from the database.
+ * @returns A record of guild settings keyed by Guild ID.
+ */
+export async function loadAllGuildSettings(): Promise<Record<string, GuildSettings>> {
     try {
-        if (!fs.existsSync(GUILDS_FILE)) {
-            return {};
+        const guilds = await Guild.find({});
+        const result: Record<string, GuildSettings> = {};
+        for (const guild of guilds) {
+            result[guild.guildId] = {
+                prefix: guild.prefix,
+            };
         }
-        const data = fs.readFileSync(GUILDS_FILE, 'utf-8');
-        return JSON.parse(data);
+        return result;
     } catch (error) {
-        console.error('Error loading guild settings:', error);
+        console.error('Error loading guild settings from DB:', error);
         return {};
     }
 }
 
-export function saveAllGuildSettings(settings: Record<string, GuildSettings>): void {
+/**
+ * Gets specific guild settings.
+ * @param guildId The Discord Guild ID.
+ */
+export async function getGuildSettings(guildId: string): Promise<GuildSettings> {
     try {
-        fs.writeFileSync(GUILDS_FILE, JSON.stringify(settings, null, 2));
+        const guild = await Guild.findOne({ guildId });
+        if (!guild) return { ...DEFAULT_SETTINGS };
+        return {
+            prefix: guild.prefix,
+        };
     } catch (error) {
-        console.error('Error saving guild settings:', error);
+        console.error(`Error fetching guild settings for ${guildId}:`, error);
+        return { ...DEFAULT_SETTINGS };
     }
 }
 
-export function getGuildSettings(guildId: string): GuildSettings {
-    const allSettings = loadAllGuildSettings();
-    return allSettings[guildId] || { ...DEFAULT_SETTINGS };
-}
-
-export function updateGuildSettings(guildId: string, updates: Partial<GuildSettings>): void {
-    const allSettings = loadAllGuildSettings();
-    allSettings[guildId] = {
-        ...(allSettings[guildId] || DEFAULT_SETTINGS),
-        ...updates,
-    };
-    saveAllGuildSettings(allSettings);
+/**
+ * Updates settings for a specific guild.
+ * @param guildId The Discord Guild ID.
+ * @param updates Partial settings updates.
+ */
+export async function updateGuildSettings(guildId: string, updates: Partial<GuildSettings>): Promise<void> {
+    try {
+        await Guild.findOneAndUpdate(
+            { guildId },
+            { $set: updates },
+            { upsert: true, new: true }
+        );
+    } catch (error) {
+        console.error(`Error updating guild settings for ${guildId}:`, error);
+    }
 }
