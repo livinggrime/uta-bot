@@ -72,7 +72,16 @@ export default {
             });
 
             embed.setDescription(description.trim());
-            embed.setThumbnail(getImageUrl(tracks[0]?.image));
+
+            const latestTrack = tracks[0];
+            const coverArt = latestTrack ? await getImageUrl(
+                latestTrack.image,
+                'track',
+                (latestTrack.artist as any)['#text'] || latestTrack.artist,
+                latestTrack.name
+            ) : null;
+
+            if (coverArt) embed.setThumbnail(coverArt);
             embed.setFooter({ text: `Total Scrobbles: ${parseInt(userData.username).toLocaleString() === 'NaN' ? 'View Profile' : '...'}` });
             // Wait, I don't have total scrobbles here easily without another API call. 
             // Let's just keep it simple or fetch it.

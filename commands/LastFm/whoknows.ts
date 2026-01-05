@@ -85,7 +85,7 @@ export default {
                         // Pick up global info from the first successful request
                         if (artistInfo.name) displayArtistName = artistInfo.name;
                         if (artistInfo.url) artistUrl = artistInfo.url;
-                        if (artistInfo.image) artistImage = getImageUrl(artistInfo.image) || '';
+                        if (artistInfo.image) artistImage = await getImageUrl(artistInfo.image, 'artist', artistInfo.name) || '';
                     }
                 } catch (e) {
                     // Ignore errors for individual users

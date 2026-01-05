@@ -4,6 +4,8 @@ export interface UserData {
     username: string;
     sessionKey: string;
     authorizedAt: string;
+    spotifyAccessToken?: string;
+    spotifyRefreshToken?: string;
 }
 
 /**
@@ -57,10 +59,29 @@ export async function getUserData(discordUserId: string): Promise<UserData | nul
             username: user.username,
             sessionKey: user.sessionKey,
             authorizedAt: user.authorizedAt,
+            spotifyAccessToken: user.spotifyAccessToken,
+            spotifyRefreshToken: user.spotifyRefreshToken,
         };
     } catch (error) {
         console.error(`Error fetching user ${discordUserId} from DB:`, error);
         return null;
+    }
+}
+
+export async function saveSpotifyData(discordUserId: string, accessToken: string, refreshToken: string): Promise<void> {
+    try {
+        await User.findOneAndUpdate(
+            { discordUserId },
+            {
+                $set: {
+                    spotifyAccessToken: accessToken,
+                    spotifyRefreshToken: refreshToken
+                }
+            },
+            { upsert: true, new: true }
+        );
+    } catch (error) {
+        console.error(`Error saving Spotify data for ${discordUserId}:`, error);
     }
 }
 

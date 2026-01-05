@@ -90,7 +90,7 @@ export default {
                         if (info.artist) displayArtistName = info.artist;
                         if (info.name) displayAlbumName = info.name;
                         if (info.url) albumUrl = info.url;
-                        if (info.image) albumImage = getImageUrl(info.image) || '';
+                        if (info.image) albumImage = await getImageUrl(info.image, 'album', info.artist, info.name) || '';
                     }
                 } catch (e) { }
             });

@@ -90,7 +90,7 @@ export default {
                         if (info.artist?.name) displayArtistName = info.artist.name;
                         if (info.name) displayTrackName = info.name;
                         if (info.url) trackUrl = info.url;
-                        if (info.album?.image) trackImage = getImageUrl(info.album.image) || '';
+                        if (info.album?.image) trackImage = await getImageUrl(info.album.image, 'track', info.artist?.name, info.name) || '';
                     }
                 } catch (e) { }
             });

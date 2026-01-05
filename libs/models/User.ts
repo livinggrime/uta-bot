@@ -5,6 +5,8 @@ export interface IUser extends Document {
     username: string;
     sessionKey: string;
     authorizedAt: string;
+    spotifyAccessToken?: string;
+    spotifyRefreshToken?: string;
 }
 
 const UserSchema: Schema = new Schema({
@@ -12,6 +14,8 @@ const UserSchema: Schema = new Schema({
     username: { type: String, required: true },
     sessionKey: { type: String, required: true },
     authorizedAt: { type: String, required: true },
+    spotifyAccessToken: { type: String },
+    spotifyRefreshToken: { type: String },
 });
 
 export default mongoose.model<IUser>('User', UserSchema);

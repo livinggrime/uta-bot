@@ -1,4 +1,5 @@
 import dotenv from 'dotenv';
+import { searchSpotifyImage } from './spotify';
 
 dotenv.config();
 
@@ -68,7 +69,7 @@ export interface LastFmUser {
         unixtime: string;
         '#text': number;
     };
-    image?: Array<{
+    image?: string | Array<{
         '#text': string;
         size: string;
     }>;
@@ -240,21 +241,41 @@ export async function getTrackInfo(artist: string, track: string, username?: str
     return data.track;
 }
 
-export function getImageUrl(images?: Array<{ '#text': string; size: string }>): string | null {
-    if (!images || images.length === 0) {
-        return null;
+export async function getImageUrl(images?: string | Array<{ '#text': string; size: string }>, type?: 'artist' | 'album' | 'track', artistName?: string, itemName?: string): Promise<string | null> {
+    let url: string | null = null;
+
+    if (images) {
+        // Sometimes it's just a string URL (rare legacy format or user-provided)
+        if (typeof images === 'string') {
+            url = images.length > 0 ? images : null;
+        } else if (images.length > 0) {
+            // Prefer extralarge, then large, then medium
+            const extralarge = images.find(img => img.size === 'extralarge');
+            if (extralarge && extralarge['#text']) url = extralarge['#text'];
+            else {
+                const large = images.find(img => img.size === 'large');
+                if (large && large['#text']) url = large['#text'];
+                else {
+                    const medium = images.find(img => img.size === 'medium');
+                    if (medium && medium['#text']) url = medium['#text'];
+                    else {
+                        const lastImage = images[images.length - 1];
+                        if (lastImage && lastImage['#text']) url = lastImage['#text'];
+                    }
+                }
+            }
+        }
     }
 
-    // Prefer extralarge, then large, then medium
-    const extralarge = images.find(img => img.size === 'extralarge');
-    if (extralarge && extralarge['#text']) return extralarge['#text'];
+    // List of known placeholder images or patterns
+    const isPlaceholder = !url || url.includes('2a96cbd8b46e442fc41c2b86b821562f') || url.length === 0;
 
-    const large = images.find(img => img.size === 'large');
-    if (large && large['#text']) return large['#text'];
+    if (isPlaceholder && type && artistName) {
+        // Query Spotify
+        const query = type === 'artist' ? artistName : `${artistName} ${itemName || ''}`;
+        const spotifyUrl = await searchSpotifyImage(query.trim(), type);
+        if (spotifyUrl) return spotifyUrl;
+    }
 
-    const medium = images.find(img => img.size === 'medium');
-    if (medium && medium['#text']) return medium['#text'];
-
-    const lastImage = images[images.length - 1];
-    return (lastImage && lastImage['#text']) || null;
+    return url;
 }

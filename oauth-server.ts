@@ -1,7 +1,9 @@
 import http from 'http';
 import { URL } from 'url';
 import { getSessionKey } from './libs/oauth';
-import { saveUser } from './libs/userdata';
+import { saveUser, saveSpotifyData } from './libs/userdata';
+import { exchangeCodeForToken } from './libs/spotify';
+import { url } from 'inspector';
 
 
 const PORT = parseInt(process.env.PORT || process.env.OAUTH_PORT || '3001');
@@ -209,6 +211,157 @@ const server = http.createServer(async (req, res) => {
                 </body>
                 </html>
             `);
+        }
+    } else if (pathname === '/spotifyoauth') {
+        const code = url.searchParams.get('code');
+        const state = url.searchParams.get('state');
+
+        if (!code) {
+            res.writeHead(400, { 'Content-Type': 'text/html' });
+            res.end('<html><body><h1>Error: No code provided</h1></body></html>');
+            return;
+        }
+
+        try {
+            const discordUserId = state;
+            if (!discordUserId) throw new Error('No state provided');
+
+            const data = await exchangeCodeForToken(code);
+            
+            if (data.error) throw new Error(data.error_description || data.error);
+
+            await saveSpotifyData(discordUserId, data.access_token, data.refresh_token);
+
+            console.log(`[OAuth] Successfully linked Spotify for Discord user ${ discordUserId } `);
+
+            res.writeHead(200, { 'Content-Type': 'text/html' });
+            res.end(`
+            < !DOCTYPE html >
+                <html>
+                <head>
+                <title>Spotify Linked! </title>
+                    < meta name = "viewport" content = "width=device-width, initial-scale=1" >
+                        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel = "stylesheet" >
+                            <style>
+                            body {
+            font - family: 'Inter', sans - serif;
+            display: flex;
+            justify - content: center;
+            align - items: center;
+            height: 100vh;
+            margin: 0;
+            background - color: #191414;
+            color: white;
+        }
+                        .container {
+        background: #121212;
+padding: 48px;
+border - radius: 24px;
+box - shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+text - align: center;
+max - width: 400px;
+width: 90 %;
+border: 1px solid #282828;
+                        }
+                        .icon {
+    font - size: 64px;
+    margin - bottom: 24px;
+    color: #1DB954;
+}
+                        h1 {
+    font - size: 28px;
+    font - weight: 700;
+    margin: 0 0 12px 0;
+    letter - spacing: -0.5px;
+}
+                        p {
+    color: #b0b0b0;
+    font - size: 16px;
+    line - height: 1.6;
+    margin - bottom: 32px;
+}
+                        .btn {
+    display: inline - block;
+    background: #1DB954;
+    color: white;
+    text - decoration: none;
+    padding: 14px 28px;
+    border - radius: 12px;
+    font - weight: 600;
+    transition: transform 0.2s;
+}
+                        .btn:hover {
+    transform: translateY(-2px);
+}
+</style>
+    </head>
+    < body >
+    <div class="container" >
+        <div class="icon" >✓</div>
+            < h1 > Spotify Linked! </h1>
+                < p > Your Spotify account has been successfully connected.</p>
+                    < a href = "#" class="btn" onclick = "window.close()" > Close Tab </a>
+                        </div>
+                        </body>
+                        </html>
+                            `);
+
+        } catch (error: any) {
+            console.error('Error completing Spotify OAuth flow:', error);
+            res.writeHead(500, { 'Content-Type': 'text/html' });
+             res.end(`
+                        < !DOCTYPE html >
+                            <html>
+                            <head>
+                            <title>Authorization Failed </title>
+                                < meta name = "viewport" content = "width=device-width, initial-scale=1" >
+                                    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel = "stylesheet" >
+                                        <style>
+                                        body {
+    font - family: 'Inter', sans - serif;
+    display: flex;
+    justify - content: center;
+    align - items: center;
+    height: 100vh;
+    margin: 0;
+    background - color: #191414;
+    color: white;
+}
+                        .container {
+    background: #121212;
+    padding: 48px;
+    border - radius: 24px;
+    box - shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    text - align: center;
+    max - width: 400px;
+    width: 90 %;
+    border: 1px solid #282828;
+}
+                        .icon {
+    font - size: 64px;
+    margin - bottom: 24px;
+    color: #ff4b2b;
+}
+                        h1 {
+    font - size: 28px;
+    font - weight: 700;
+    margin: 0 0 12px 0;
+}
+                        p {
+    color: #b0b0b0;
+    margin - bottom: 32px;
+}
+</style>
+    </head>
+    < body >
+    <div class="container" >
+        <div class="icon" >✕</div>
+            < h1 > Link Failed </h1>
+                < p > There was an error connecting your Spotify account.</p>
+                    </div>
+                    </body>
+                    </html>
+                        `);
         }
     } else if (pathname === '/health' || pathname === '') {
         res.writeHead(200, { 'Content-Type': 'text/plain' });

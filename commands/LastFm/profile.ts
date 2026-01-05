@@ -35,7 +35,7 @@ export default {
             ]);
 
             const scrobbles = parseInt(userInfo.playcount).toLocaleString();
-            const profileImage = getImageUrl(userInfo.image);
+            const profileImage = await getImageUrl(userInfo.image);
 
             const embed = new EmbedBuilder()
                 .setColor(0xd51007)

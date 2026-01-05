@@ -33,7 +33,7 @@ export default {
                 .setColor(0xd51007)
                 .setTitle(`Featured User: ${userInfo.name}`)
                 .setURL(userInfo.url)
-                .setThumbnail(getImageUrl(userInfo.image))
+                .setThumbnail(await getImageUrl(userInfo.image))
                 .addFields(
                     { name: '📊 Total Scrobbles', value: parseInt(userInfo.playcount).toLocaleString(), inline: true },
                     { name: '📅 Member Since', value: `<t:${userInfo.registered.unixtime}:D>`, inline: true }

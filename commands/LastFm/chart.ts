@@ -62,27 +62,32 @@ export default {
 
             if (type === 'artist') {
                 const artists = await getTopArtists(username, period, limit);
-                items = artists.map(a => ({
+                items = await Promise.all(artists.map(async a => ({
                     name: a.name,
                     playcount: a.playcount,
-                    imageUrl: getImageUrl(a.image)
-                }));
+                    imageUrl: await getImageUrl(a.image, 'artist', a.name)
+                })));
             } else if (type === 'album') {
                 const albums = await getTopAlbums(username, period, limit);
-                items = albums.map(a => ({
+                items = await Promise.all(albums.map(async a => ({
                     name: a.name,
                     secondary: a.artist.name,
                     playcount: a.playcount,
-                    imageUrl: getImageUrl(a.image)
-                }));
+                    imageUrl: await getImageUrl(a.image, 'album', a.artist.name, a.name)
+                })));
             } else if (type === 'track') {
                 const tracks = await getTopTracks(username, period, limit);
-                items = tracks.map(t => ({
+                items = await Promise.all(tracks.map(async t => ({
                     name: t.name,
                     secondary: typeof t.artist === 'string' ? t.artist : t.artist['#text'],
                     playcount: t.playcount || '0',
-                    imageUrl: getImageUrl(t.image)
-                }));
+                    imageUrl: await getImageUrl(
+                        t.image,
+                        'track',
+                        typeof t.artist === 'string' ? t.artist : t.artist['#text'],
+                        t.name
+                    )
+                })));
             }
 
             if (items.length === 0) {
