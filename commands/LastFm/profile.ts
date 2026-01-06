@@ -1,6 +1,12 @@
-import { SlashCommandBuilder, EmbedBuilder, MessageFlags } from 'discord.js';
-import { getUserInfo, getImageUrl, getTopArtists } from '../../libs/lastfm';
-import { getUserData } from '../../libs/userdata';
+import {
+    ApplicationIntegrationType,
+    EmbedBuilder,
+    InteractionContextType,
+    MessageFlags,
+    SlashCommandBuilder
+} from 'discord.js';
+import {getImageUrl, getTopArtists, getUserInfo} from '../../libs/lastfm';
+import {getUserData} from '../../libs/userdata';
 
 
 export default {
@@ -13,7 +19,16 @@ export default {
             option.setName('user')
                 .setDescription('The Discord user to check (defaults to you)')
                 .setRequired(false)
-        ),
+        )
+        .setIntegrationTypes([
+            ApplicationIntegrationType.GuildInstall,
+            ApplicationIntegrationType.UserInstall
+        ])
+        .setContexts([
+            InteractionContextType.Guild,
+            InteractionContextType.BotDM,
+            InteractionContextType.PrivateChannel
+        ]),
     async execute(context: any) {
         const targetUser = context.options.getUser('user') || context.user;
         const userData = await getUserData(targetUser.id);

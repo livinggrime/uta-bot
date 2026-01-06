@@ -1,6 +1,12 @@
-import { SlashCommandBuilder, EmbedBuilder, MessageFlags } from 'discord.js';
-import { getArtistInfo, getNowPlaying, getImageUrl } from '../../libs/lastfm';
-import { loadUsers, type UserData } from '../../libs/userdata';
+import {
+    ApplicationIntegrationType,
+    EmbedBuilder,
+    InteractionContextType,
+    MessageFlags,
+    SlashCommandBuilder
+} from 'discord.js';
+import {getArtistInfo, getImageUrl, getNowPlaying} from '../../libs/lastfm';
+import {loadUsers} from '../../libs/userdata';
 
 export default {
     aliases: ['wk', 'w', 'artistplays', 'ap'],
@@ -12,7 +18,16 @@ export default {
             option.setName('artist')
                 .setDescription('The artist to check (defaults to your now playing)')
                 .setRequired(false)
-        ),
+        )
+        .setIntegrationTypes([
+            ApplicationIntegrationType.GuildInstall,
+            ApplicationIntegrationType.UserInstall
+        ])
+        .setContexts([
+            InteractionContextType.Guild,
+            InteractionContextType.BotDM,
+            InteractionContextType.PrivateChannel
+        ]),
     async execute(context: any) {
         let artistName = context.options.getString('artist');
         const guildId = context.guildId;

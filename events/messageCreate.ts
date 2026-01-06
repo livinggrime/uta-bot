@@ -1,5 +1,5 @@
-import { Events, Message, Collection, ChannelType } from 'discord.js';
-import { getGuildSettings } from '../libs/guilddata';
+import {ChannelType, Collection, Events, Message} from 'discord.js';
+import {getGuildSettings} from '../libs/guilddata';
 
 export default {
     name: Events.MessageCreate,

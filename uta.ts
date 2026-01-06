@@ -1,9 +1,9 @@
 import dotenv from 'dotenv';
 import fs from 'node:fs';
 import path from 'node:path';
-import { Client, GatewayIntentBits, Partials, Collection } from "discord.js";
-import { startOAuthServer } from './oauth-server';
-import { connectToDatabase } from './libs/database';
+import {Client, Collection, GatewayIntentBits, Partials} from "discord.js";
+import {startOAuthServer} from './oauth-server';
+import {connectToDatabase} from './libs/database';
 
 
 const TOKEN = process.env.TOKEN || '';

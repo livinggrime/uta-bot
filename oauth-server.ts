@@ -1,9 +1,8 @@
 import http from 'http';
-import { URL } from 'url';
-import { getSessionKey } from './libs/oauth';
-import { saveUser, saveSpotifyData } from './libs/userdata';
-import { exchangeCodeForToken } from './libs/spotify';
-import { url } from 'inspector';
+import {URL} from 'url';
+import {getSessionKey} from './libs/oauth';
+import {saveSpotifyData, saveUser} from './libs/userdata';
+import {exchangeCodeForToken} from './libs/spotify';
 
 
 const PORT = parseInt(process.env.PORT || process.env.OAUTH_PORT || '3001');
@@ -31,7 +30,7 @@ const server = http.createServer(async (req, res) => {
 
         if (!token) {
             res.writeHead(400, { 'Content-Type': 'text/html' });
-            res.end('<html><body><h1>Error: No token provided</h1></body></html>');
+            res.end('<html lang="en"><body><h1>Error: No token provided</h1></body></html>');
             return;
         }
 
@@ -39,7 +38,7 @@ const server = http.createServer(async (req, res) => {
 
         if (!pending) {
             res.writeHead(404, { 'Content-Type': 'text/html' });
-            res.end('<html><body><h1>Error: Invalid or expired token</h1></body></html>');
+            res.end('<html lang="en"><body><h1>Error: Invalid or expired token</h1></body></html>');
             return;
         }
 
@@ -64,7 +63,7 @@ const server = http.createServer(async (req, res) => {
             res.writeHead(200, { 'Content-Type': 'text/html' });
             res.end(`
                 <!DOCTYPE html>
-                <html>
+                <html lang="en">
                 <head>
                     <title>Authorization Successful</title>
                     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -147,7 +146,7 @@ const server = http.createServer(async (req, res) => {
             res.writeHead(500, { 'Content-Type': 'text/html' });
             res.end(`
                 <!DOCTYPE html>
-                <html>
+                <html lang="en">
                 <head>
                     <title>Authorization Failed</title>
                     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -218,7 +217,7 @@ const server = http.createServer(async (req, res) => {
 
         if (!code) {
             res.writeHead(400, { 'Content-Type': 'text/html' });
-            res.end('<html><body><h1>Error: No code provided</h1></body></html>');
+            res.end('<html lang="en"><body><h1>Error: No code provided</h1></body></html>');
             return;
         }
 

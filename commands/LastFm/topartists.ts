@@ -1,6 +1,12 @@
-import { SlashCommandBuilder, EmbedBuilder, MessageFlags } from 'discord.js';
-import { getTopArtists, getImageUrl } from '../../libs/lastfm';
-import { getUserData } from '../../libs/userdata';
+import {
+    ApplicationIntegrationType,
+    EmbedBuilder,
+    InteractionContextType,
+    MessageFlags,
+    SlashCommandBuilder
+} from 'discord.js';
+import {getImageUrl, getTopArtists} from '../../libs/lastfm';
+import {getUserData} from '../../libs/userdata';
 
 
 const PERIOD_LABELS: Record<string, string> = {
@@ -42,7 +48,16 @@ export default {
                 .setMinValue(1)
                 .setMaxValue(10)
                 .setRequired(false)
-        ),
+        )
+        .setIntegrationTypes([
+            ApplicationIntegrationType.GuildInstall,
+            ApplicationIntegrationType.UserInstall
+        ])
+        .setContexts([
+            InteractionContextType.Guild,
+            InteractionContextType.BotDM,
+            InteractionContextType.PrivateChannel
+        ]),
     async execute(context: any) {
         const targetUser = context.options.getUser('user') || context.user;
         const period = context.options.getString('period') || 'overall';
@@ -87,7 +102,7 @@ export default {
             embed.setDescription(description.trim());
 
             if (artists.length > 0 && artists[0]) {
-                const firstArtistImage = getImageUrl(artists[0].image);
+                const firstArtistImage = await getImageUrl(artists[0].image);
                 if (firstArtistImage) {
                     embed.setThumbnail(firstArtistImage);
                 }

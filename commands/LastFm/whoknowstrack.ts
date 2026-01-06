@@ -1,6 +1,12 @@
-import { SlashCommandBuilder, EmbedBuilder, MessageFlags } from 'discord.js';
-import { getTrackInfo, getNowPlaying, getImageUrl } from '../../libs/lastfm';
-import { loadUsers } from '../../libs/userdata';
+import {
+    ApplicationIntegrationType,
+    EmbedBuilder,
+    InteractionContextType,
+    MessageFlags,
+    SlashCommandBuilder
+} from 'discord.js';
+import {getImageUrl, getNowPlaying, getTrackInfo} from '../../libs/lastfm';
+import {loadUsers} from '../../libs/userdata';
 
 export default {
     aliases: ['wkt', 'trackplays', 'tp'],
@@ -17,7 +23,16 @@ export default {
             option.setName('track')
                 .setDescription('The track name')
                 .setRequired(false)
-        ),
+        )
+        .setIntegrationTypes([
+            ApplicationIntegrationType.GuildInstall,
+            ApplicationIntegrationType.UserInstall
+        ])
+        .setContexts([
+            InteractionContextType.Guild,
+            InteractionContextType.BotDM,
+            InteractionContextType.PrivateChannel
+        ]),
     async execute(context: any) {
         let artistName = context.options.getString('artist');
         let trackName = context.options.getString('track');

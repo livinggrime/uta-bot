@@ -1,6 +1,12 @@
-import { SlashCommandBuilder, EmbedBuilder, MessageFlags } from 'discord.js';
-import { getSpotifyAuthorizationUrl, SpotifyPlayer } from '../../libs/spotify';
-import { getUserData } from '../../libs/userdata';
+import {
+    ApplicationIntegrationType,
+    EmbedBuilder,
+    InteractionContextType,
+    MessageFlags,
+    SlashCommandBuilder
+} from 'discord.js';
+import {getSpotifyAuthorizationUrl, SpotifyPlayer} from '../../libs/spotify';
+import {getUserData} from '../../libs/userdata';
 
 export default {
     data: new SlashCommandBuilder()
@@ -10,7 +16,17 @@ export default {
         .addSubcommand(sub => sub.setName('play').setDescription('Resume playback'))
         .addSubcommand(sub => sub.setName('pause').setDescription('Pause playback'))
         .addSubcommand(sub => sub.setName('resume').setDescription('Resume playback'))
-        .addSubcommand(sub => sub.setName('nowplaying').setDescription('Show current track')),
+        .addSubcommand(sub => sub.setName('resume').setDescription('Resume playback'))
+        .addSubcommand(sub => sub.setName('nowplaying').setDescription('Show current track'))
+        .setIntegrationTypes([
+            ApplicationIntegrationType.GuildInstall,
+            ApplicationIntegrationType.UserInstall
+        ])
+        .setContexts([
+            InteractionContextType.Guild,
+            InteractionContextType.BotDM,
+            InteractionContextType.PrivateChannel
+        ]),
 
     async execute(context: any) {
         const subcommand = context.options.getSubcommand();

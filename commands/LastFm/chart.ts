@@ -1,7 +1,13 @@
-import { SlashCommandBuilder, EmbedBuilder, AttachmentBuilder, MessageFlags } from 'discord.js';
-import { getTopArtists, getTopAlbums, getTopTracks, getImageUrl } from '../../libs/lastfm';
-import { getUserData } from '../../libs/userdata';
-import { generateChart, type ChartItem } from '../../libs/charts';
+import {
+    ApplicationIntegrationType,
+    AttachmentBuilder,
+    EmbedBuilder,
+    InteractionContextType,
+    SlashCommandBuilder
+} from 'discord.js';
+import {getImageUrl, getTopAlbums, getTopArtists, getTopTracks} from '../../libs/lastfm';
+import {getUserData} from '../../libs/userdata';
+import {type ChartItem, generateChart} from '../../libs/charts';
 
 export default {
     aliases: ['c', 'chart'],
@@ -39,7 +45,16 @@ export default {
         .addUserOption(option =>
             option.setName('user')
                 .setDescription('The user to generate the chart for')
-        ),
+        )
+        .setIntegrationTypes([
+            ApplicationIntegrationType.GuildInstall,
+            ApplicationIntegrationType.UserInstall
+        ])
+        .setContexts([
+            InteractionContextType.Guild,
+            InteractionContextType.BotDM,
+            InteractionContextType.PrivateChannel
+        ]),
     async execute(context: any) {
         const type = context.options.getString('type') || 'artist';
         const period = context.options.getString('period') || '7day';
@@ -79,12 +94,12 @@ export default {
                 const tracks = await getTopTracks(username, period, limit);
                 items = await Promise.all(tracks.map(async t => ({
                     name: t.name,
-                    secondary: typeof t.artist === 'string' ? t.artist : t.artist['#text'],
+                    secondary: typeof t.artist === "string" ? t.artist : t.artist['#text'],
                     playcount: t.playcount || '0',
                     imageUrl: await getImageUrl(
                         t.image,
                         'track',
-                        typeof t.artist === 'string' ? t.artist : t.artist['#text'],
+                        typeof t.artist === 'string' ? t.artist : t.artist["#text"],
                         t.name
                     )
                 })));

@@ -1,6 +1,12 @@
-import { SlashCommandBuilder, EmbedBuilder, MessageFlags } from 'discord.js';
-import { getAlbumInfo, getNowPlaying, getImageUrl } from '../../libs/lastfm';
-import { loadUsers } from '../../libs/userdata';
+import {
+    ApplicationIntegrationType,
+    EmbedBuilder,
+    InteractionContextType,
+    MessageFlags,
+    SlashCommandBuilder
+} from 'discord.js';
+import {getAlbumInfo, getImageUrl, getNowPlaying} from '../../libs/lastfm';
+import {loadUsers} from '../../libs/userdata';
 
 export default {
     aliases: ['wka', 'albumplays'],
@@ -17,7 +23,16 @@ export default {
             option.setName('album')
                 .setDescription('The album name')
                 .setRequired(false)
-        ),
+        )
+        .setIntegrationTypes([
+            ApplicationIntegrationType.GuildInstall,
+            ApplicationIntegrationType.UserInstall
+        ])
+        .setContexts([
+            InteractionContextType.Guild,
+            InteractionContextType.BotDM,
+            InteractionContextType.PrivateChannel
+        ]),
     async execute(context: any) {
         let artistName = context.options.getString('artist');
         let albumName = context.options.getString('album');

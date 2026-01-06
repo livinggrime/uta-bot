@@ -1,6 +1,12 @@
-import { SlashCommandBuilder, EmbedBuilder, MessageFlags } from 'discord.js';
-import { getTopArtists } from '../../libs/lastfm';
-import { getUserData } from '../../libs/userdata';
+import {
+    ApplicationIntegrationType,
+    EmbedBuilder,
+    InteractionContextType,
+    MessageFlags,
+    SlashCommandBuilder
+} from 'discord.js';
+import {getTopArtists} from '../../libs/lastfm';
+import {getUserData} from '../../libs/userdata';
 
 export default {
     aliases: ['conf', 'affinity'],
@@ -12,7 +18,16 @@ export default {
             option.setName('user')
                 .setDescription('The user to compare with')
                 .setRequired(true)
-        ),
+        )
+        .setIntegrationTypes([
+            ApplicationIntegrationType.GuildInstall,
+            ApplicationIntegrationType.UserInstall
+        ])
+        .setContexts([
+            InteractionContextType.Guild,
+            InteractionContextType.BotDM,
+            InteractionContextType.PrivateChannel
+        ]),
     async execute(context: any) {
         const targetUser = context.options.getUser('user');
         const selfUser = context.user;

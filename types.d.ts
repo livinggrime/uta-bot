@@ -1,7 +1,4 @@
-
-import { Client } from 'discord.js';
-import { Collection } from 'discord.js';
-import { Command } from './Command'; // Your command structure
+import {Collection} from 'discord.js';
 
 declare module 'discord.js' {
     interface Client {

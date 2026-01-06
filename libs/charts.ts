@@ -1,4 +1,4 @@
-import { createCanvas, loadImage } from 'canvas';
+import {createCanvas, loadImage} from 'canvas';
 
 export interface ChartItem {
     name: string;

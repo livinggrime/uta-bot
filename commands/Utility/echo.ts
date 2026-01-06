@@ -1,4 +1,4 @@
-import {SlashCommandBuilder} from "discord.js";
+import {ApplicationIntegrationType, InteractionContextType, SlashCommandBuilder} from "discord.js";
 
 export default {
     data: new SlashCommandBuilder()
@@ -11,16 +11,25 @@ export default {
         .addChannelOption((option) =>
             option.setName('channel')
                 .setDescription('The channel to echo the input to')
-                .setRequired(false)),
-    async execute(interaction: any) {
-        const input = interaction.options.getString('input');
-        const channel = interaction.options.getChannel('channel');
+                .setRequired(false))
+        .setIntegrationTypes([
+            ApplicationIntegrationType.GuildInstall,
+            ApplicationIntegrationType.UserInstall
+        ])
+        .setContexts([
+            InteractionContextType.Guild,
+            InteractionContextType.BotDM,
+            InteractionContextType.PrivateChannel
+        ]),
+    async execute(context: any) {
+        const input = context.options.getString('input');
+        const channel = context.options.getChannel('channel');
 
         if (channel) {
             await channel.send(input);
-            await interaction.reply({content: `Echoed your input to ${channel}.`, ephemeral: true});
+            await context.reply({ content: `Echoed your input to ${channel}.`, ephemeral: true });
         } else {
-            await interaction.reply(input);
+            await context.reply(input);
         }
     }
 };

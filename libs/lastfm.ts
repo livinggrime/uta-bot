@@ -1,11 +1,15 @@
 import dotenv from 'dotenv';
-import { searchSpotifyImage } from './spotify';
+import {searchSpotifyImage} from './spotify';
 
 dotenv.config();
 
 const FMKEY = process.env.FMKEY || '';
 const BASE_URL = 'https://ws.audioscrobbler.com/2.0/';
 
+export interface RawImage {
+    size: string;
+    "#text": string;
+}
 export interface LastFmTrack {
     name: string;
     artist: {
@@ -16,10 +20,7 @@ export interface LastFmTrack {
         '#text': string;
         mbid?: string;
     };
-    image?: Array<{
-        '#text': string;
-        size: string;
-    }>;
+    image?: RawImage[];
     url?: string;
     playcount?: string;
     '@attr'?: {
@@ -35,10 +36,7 @@ export interface LastFmArtist {
     name: string;
     playcount: string;
     url: string;
-    image?: Array<{
-        '#text': string;
-        size: string;
-    }>;
+    image?: RawImage[];
     mbid?: string;
 }
 
@@ -51,10 +49,7 @@ export interface LastFmAlbum {
     };
     playcount: string;
     url: string;
-    image?: Array<{
-        '#text': string;
-        size: string;
-    }>;
+    image?: RawImage[];
     mbid?: string;
 }
 
@@ -69,10 +64,7 @@ export interface LastFmUser {
         unixtime: string;
         '#text': number;
     };
-    image?: string | Array<{
-        '#text': string;
-        size: string;
-    }>;
+    image?: string | RawImage[];
 }
 
 async function makeRequest(params: Record<string, string>): Promise<any> {

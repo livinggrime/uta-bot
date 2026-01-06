@@ -1,6 +1,6 @@
-import { SlashCommandBuilder, EmbedBuilder, MessageFlags } from 'discord.js';
-import { getSessionKey } from '../../libs/oauth';
-import { saveUser } from '../../libs/userdata';
+import {ApplicationIntegrationType, EmbedBuilder, InteractionContextType, SlashCommandBuilder} from 'discord.js';
+import {getSessionKey} from '../../libs/oauth';
+import {saveUser} from '../../libs/userdata';
 
 export default {
     aliases: ['confirmfm'],
@@ -12,7 +12,16 @@ export default {
             option.setName('token')
                 .setDescription('The token from the Last.fm redirect URL (e.g. ?token=...)')
                 .setRequired(true)
-        ),
+        )
+        .setIntegrationTypes([
+            ApplicationIntegrationType.GuildInstall,
+            ApplicationIntegrationType.UserInstall
+        ])
+        .setContexts([
+            InteractionContextType.Guild,
+            InteractionContextType.BotDM,
+            InteractionContextType.PrivateChannel
+        ]),
     async execute(context: any) {
         const token = context.options.getString('token');
 

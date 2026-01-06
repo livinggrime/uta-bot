@@ -1,4 +1,4 @@
-import { ChatInputCommandInteraction, Message, User, GuildMember, TextChannel, DMChannel, EmbedBuilder } from 'discord.js';
+import {ChatInputCommandInteraction, DMChannel, GuildMember, Message, TextChannel, User} from 'discord.js';
 
 export interface CommandContext {
     user: User;

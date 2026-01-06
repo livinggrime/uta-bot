@@ -1,9 +1,15 @@
-import { SlashCommandBuilder, EmbedBuilder, MessageFlags } from 'discord.js';
-import { getNowPlaying, getImageUrl } from '../../libs/lastfm';
-import { getUserData } from '../../libs/userdata';
+import {
+    ApplicationIntegrationType,
+    EmbedBuilder,
+    InteractionContextType,
+    MessageFlags,
+    SlashCommandBuilder
+} from 'discord.js';
+import {getImageUrl, getNowPlaying} from '../../libs/lastfm';
+import {getUserData} from '../../libs/userdata';
 
 export default {
-    aliases: ['np', 'now'],
+    aliases: ['np', 'now', 'fm'],
     cooldown: 3,
     data: new SlashCommandBuilder()
         .setName('nowplaying')
@@ -12,7 +18,16 @@ export default {
             option.setName('user')
                 .setDescription('The Discord user to check (defaults to you)')
                 .setRequired(false)
-        ),
+        )
+        .setIntegrationTypes([
+            ApplicationIntegrationType.GuildInstall,
+            ApplicationIntegrationType.UserInstall
+        ])
+        .setContexts([
+            InteractionContextType.Guild,
+            InteractionContextType.BotDM,
+            InteractionContextType.PrivateChannel
+        ]),
     async execute(context: any) {
         const targetUser = context.options.getUser('user') || context.user;
         const userData = await getUserData(targetUser.id);
@@ -40,7 +55,7 @@ export default {
             const isNowPlaying = track['@attr']?.nowplaying === 'true';
             const artistName = String(track.artist['#text'] || track.artist);
             const albumName = String(track.album?.['#text'] || 'Unknown Album');
-            const imageUrl = getImageUrl(track.image);
+            const imageUrl = await getImageUrl(track.image);
 
             const embed = new EmbedBuilder()
                 .setColor(isNowPlaying ? 0x00ff00 : 0x808080)

@@ -1,7 +1,16 @@
-import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } from 'discord.js';
-import { getAuthToken, getAuthorizationUrl, pollForSession } from '../../libs/oauth';
-import { registerPendingAuth } from '../../oauth-server';
-import { saveUser, countAltsByFmUsername } from '../../libs/userdata';
+import {
+    ActionRowBuilder,
+    ApplicationIntegrationType,
+    ButtonBuilder,
+    ButtonStyle,
+    EmbedBuilder,
+    InteractionContextType,
+    MessageFlags,
+    SlashCommandBuilder
+} from 'discord.js';
+import {getAuthorizationUrl, getAuthToken, pollForSession} from '../../libs/oauth';
+import {registerPendingAuth} from '../../oauth-server';
+import {countAltsByFmUsername, saveUser} from '../../libs/userdata';
 
 
 export default {
@@ -14,7 +23,16 @@ export default {
             option.setName('username')
                 .setDescription('Enter your Last.fm username for Read-Only mode (bypasses authorization)')
                 .setRequired(false)
-        ),
+        )
+        .setIntegrationTypes([
+            ApplicationIntegrationType.GuildInstall,
+            ApplicationIntegrationType.UserInstall
+        ])
+        .setContexts([
+            InteractionContextType.Guild,
+            InteractionContextType.BotDM,
+            InteractionContextType.PrivateChannel
+        ]),
     async execute(context: any) {
         const manualUsername = context.options.getString('username');
 

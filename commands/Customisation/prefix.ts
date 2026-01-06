@@ -1,5 +1,12 @@
-import { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits, MessageFlags } from 'discord.js';
-import { getGuildSettings, updateGuildSettings } from '../../libs/guilddata';
+import {
+    ApplicationIntegrationType,
+    EmbedBuilder,
+    InteractionContextType,
+    MessageFlags,
+    PermissionFlagsBits,
+    SlashCommandBuilder
+} from 'discord.js';
+import {getGuildSettings, updateGuildSettings} from '../../libs/guilddata';
 
 export default {
     aliases: ['setprefix'],
@@ -13,6 +20,15 @@ export default {
                 .setRequired(false)
                 .setMaxLength(5)
         )
+        .setIntegrationTypes([
+            ApplicationIntegrationType.GuildInstall,
+            ApplicationIntegrationType.UserInstall
+        ])
+        .setContexts([
+            InteractionContextType.Guild,
+            InteractionContextType.BotDM,
+            InteractionContextType.PrivateChannel
+        ])
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
     async execute(context: any) {
         const newPrefix = context.options.getString('new_prefix');

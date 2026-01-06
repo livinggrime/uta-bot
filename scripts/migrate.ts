@@ -3,8 +3,7 @@ import path from 'node:path';
 import mongoose from 'mongoose';
 import Guild from '../libs/models/Guild.ts';
 import User from '../libs/models/User.ts';
-import { connectToDatabase } from '../libs/database.ts';
-import { fileURLToPath } from 'node:url';
+import {connectToDatabase} from '../libs/database.ts';
 
 const GUILDS_FILE = path.join(process.cwd(), 'guild-settings.json');
 const USERS_FILE = path.join(process.cwd(), 'lastfm-users.json');

@@ -1,13 +1,22 @@
-import { SlashCommandBuilder, EmbedBuilder, MessageFlags } from 'discord.js';
-import { loadUsers, type UserData } from '../../libs/userdata';
-import { getNowPlaying, getImageUrl, getUserInfo } from '../../libs/lastfm';
+import {ApplicationIntegrationType, EmbedBuilder, InteractionContextType, SlashCommandBuilder} from 'discord.js';
+import {loadUsers} from '../../libs/userdata';
+import {getImageUrl, getNowPlaying, getUserInfo} from '../../libs/lastfm';
 
 export default {
     aliases: ['feat'],
     cooldown: 5,
     data: new SlashCommandBuilder()
         .setName('featured')
-        .setDescription('Show a random user who uses the bot'),
+        .setDescription('Show a random user who uses the bot')
+        .setIntegrationTypes([
+            ApplicationIntegrationType.GuildInstall,
+            ApplicationIntegrationType.UserInstall
+        ])
+        .setContexts([
+            InteractionContextType.Guild,
+            InteractionContextType.BotDM,
+            InteractionContextType.PrivateChannel
+        ]),
     async execute(context: any) {
         await context.deferReply();
 

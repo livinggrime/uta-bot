@@ -1,4 +1,4 @@
-import Guild, { IGuild } from './models/Guild';
+import Guild from './models/Guild';
 
 export interface GuildSettings {
     prefix: string;
