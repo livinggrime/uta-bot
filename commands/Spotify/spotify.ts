@@ -11,13 +11,18 @@ import {getUserData} from '../../libs/userdata';
 export default {
     data: new SlashCommandBuilder()
         .setName('spotify')
-        .setDescription('Spotify commands (Bleed style)')
+        .setDescription('Spotify commands ')
         .addSubcommand(sub => sub.setName('login').setDescription('Link your Spotify account'))
         .addSubcommand(sub => sub.setName('play').setDescription('Resume playback'))
         .addSubcommand(sub => sub.setName('pause').setDescription('Pause playback'))
         .addSubcommand(sub => sub.setName('resume').setDescription('Resume playback'))
-        .addSubcommand(sub => sub.setName('resume').setDescription('Resume playback'))
         .addSubcommand(sub => sub.setName('nowplaying').setDescription('Show current track'))
+        .addSubcommand(sub => sub.setName('like').setDescription('Like the current track'))
+        .addSubcommand(sub => sub.setName('dislike').setDescription('Dislike the current track'))
+        .addSubcommand(sub => sub.setName('vc').setDescription('play the current song in vc'))
+        .addSubcommand(sub => sub.setName('topartist').setDescription('Checks you Top Artist for a definite period in weeks').addIntegerOption(option => option.setName('time').setDescription('Time period of which you wanna check').setRequired(false)))
+        .addSubcommand(sub => sub.setName('queue').setDescription('Add song to Queue'))
+        
         .setIntegrationTypes([
             ApplicationIntegrationType.GuildInstall,
             ApplicationIntegrationType.UserInstall

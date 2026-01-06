@@ -6,7 +6,7 @@ import {exchangeCodeForToken} from './libs/spotify';
 
 
 const PORT = parseInt(process.env.PORT || process.env.OAUTH_PORT || '3001');
-
+const URI = process.env.URL || process.env.BASE_URL || 'http://127.0.0.1';
 
 interface PendingAuth {
     token: string;
@@ -18,7 +18,8 @@ const pendingAuths = new Map<string, PendingAuth>();
 
 
 const server = http.createServer(async (req, res) => {
-    const url = new URL(req.url || '', `http://localhost:${PORT}`);
+    // @ts-ignore
+	const url = new URL(req.url || '', `${URI}:${PORT}`);
     const pathname = url.pathname.replace(/\/$/, '');
 
     console.log(`[HTTP] ${req.method} ${url.pathname}`);
@@ -223,11 +224,11 @@ const server = http.createServer(async (req, res) => {
 
         try {
             const discordUserId = state;
-            if (!discordUserId) throw new Error('No state provided');
+            if (!discordUserId) return console.log('No state provided');
 
             const data = await exchangeCodeForToken(code);
             
-            if (data.error) throw new Error(data.error_description || data.error);
+            if (data.error) return console.log(data.error_description || data.error);
 
             await saveSpotifyData(discordUserId, data.access_token, data.refresh_token);
 
@@ -235,74 +236,74 @@ const server = http.createServer(async (req, res) => {
 
             res.writeHead(200, { 'Content-Type': 'text/html' });
             res.end(`
-            < !DOCTYPE html >
-                <html>
-                <head>
-                <title>Spotify Linked! </title>
-                    < meta name = "viewport" content = "width=device-width, initial-scale=1" >
+            <!DOCTYPE html>
+                <html lang="en">
+                	<head>
+                		<title>Spotify Linked! </title>
+                    	<meta name = "viewport" content = "width=device-width, initial-scale=1">
                         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel = "stylesheet" >
                             <style>
                             body {
-            font - family: 'Inter', sans - serif;
-            display: flex;
-            justify - content: center;
-            align - items: center;
-            height: 100vh;
-            margin: 0;
-            background - color: #191414;
-            color: white;
-        }
-                        .container {
-        background: #121212;
-padding: 48px;
-border - radius: 24px;
-box - shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-text - align: center;
-max - width: 400px;
-width: 90 %;
-border: 1px solid #282828;
-                        }
-                        .icon {
-    font - size: 64px;
-    margin - bottom: 24px;
-    color: #1DB954;
-}
+                                    font - family: 'Inter', sans - serif;
+                                    display: flex;
+                                    justify - content: center;
+                                    align - items: center;
+                                    height: 100vh;
+                                    margin: 0;
+                                    background - color: #191414;
+                                    color: white;
+                        	}
+                        	.container {
+                                background: #121212;
+                                padding: 48px;
+                                border-radius: 24px;
+                                box - shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+                                text - align: center;
+                                max - width: 400px;
+                                width: 90 %;
+                                border: 1px solid #282828;
+                        	}
+                        	.icon {
+                                font - size: 64px;
+                                margin - bottom: 24px;
+                                color: #1DB954;
+                            }
                         h1 {
-    font - size: 28px;
-    font - weight: 700;
-    margin: 0 0 12px 0;
-    letter - spacing: -0.5px;
-}
+                            font-size: 28px;
+                            font-weight: 700;
+                            margin: 0 0 12px 0;
+                            letter - spacing: -0.5px;
+                            }
                         p {
-    color: #b0b0b0;
-    font - size: 16px;
-    line - height: 1.6;
-    margin - bottom: 32px;
-}
+						    color: #b0b0b0;
+						    font - size: 16px;
+						    line - height: 1.6;
+						    margin - bottom: 32px;
+						}
                         .btn {
-    display: inline - block;
-    background: #1DB954;
-    color: white;
-    text - decoration: none;
-    padding: 14px 28px;
-    border - radius: 12px;
-    font - weight: 600;
-    transition: transform 0.2s;
-}
+						    display: inline-block;
+						    background: #1DB954;
+						    color: white;
+						    text - decoration: none;
+						    padding: 14px 28px;
+						    border - radius: 12px;
+						    font - weight: 600;
+						    transition: transform 0.2s;
+						}
                         .btn:hover {
-    transform: translateY(-2px);
-}
-</style>
-    </head>
-    < body >
-    <div class="container" >
-        <div class="icon" >✓</div>
-            < h1 > Spotify Linked! </h1>
-                < p > Your Spotify account has been successfully connected.</p>
-                    < a href = "#" class="btn" onclick = "window.close()" > Close Tab </a>
+					    transform: translateY(-2px);
+						}
+					</style>
+    				</head>
+    				<body>
+    					<div class="container" >
+    					    <div class="icon" >✓</div>
+            				<h1> Spotify Linked! </h1>
+                			<p> Your Spotify account has been successfully connected.</p>
+                	    <a href = "#" class="btn" onclick = "window.close()" > Close Tab </a>
                         </div>
-                        </body>
-                        </html>
+                    </body>
+                </html>
                             `);
 
         } catch (error: any) {
@@ -373,7 +374,7 @@ border: 1px solid #282828;
 
 export function startOAuthServer(): void {
     server.listen(PORT, () => {
-        console.log(`[OAuth Server] Listening on http://localhost:${PORT}`);
+        console.log(`[OAuth Server] Listening on ${URI}:${PORT}`);
     });
 }
 

@@ -4,7 +4,7 @@ dotenv.config();
 
 const CLIENT_ID = process.env.SPOTIFY_CLIENT_ID || '';
 const CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET || '';
-const REDIRECT_URI = 'https://uta-bot.onrender.com/spotifyoauth'; // Can be overridden by env but user specified this
+const REDIRECT_URI = process.env.SPOTIFY_REDIRECT_URI || ''; // Can be overridden by env but user specified this
 
 let clientAccessToken: string | null = null;
 let clientTokenExpiresAt: number = 0;

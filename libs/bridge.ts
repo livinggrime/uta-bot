@@ -1,4 +1,12 @@
-import {ChatInputCommandInteraction, DMChannel, GuildMember, Message, TextChannel, User} from 'discord.js';
+import {
+    type Channel,
+    ChatInputCommandInteraction,
+    DMChannel,
+    GuildMember,
+    Message,
+    TextChannel,
+    User
+} from "discord.js";
 
 export interface CommandContext {
     user: User;
@@ -26,12 +34,16 @@ export interface CommandContext {
         getString: (name: string) => string | null;
         getInteger: (name: string) => number | null;
         getSubcommand: () => string | null;
+        getChannel: (name: string) => Channel | null;
     }
 }
 
 export function createCommandContext(input: ChatInputCommandInteraction | Message, args: string[] = []): CommandContext {
     const isInteraction = input instanceof ChatInputCommandInteraction;
 
+    // @ts-ignore
+    // @ts-ignore
+    // @ts-ignore
     const context: CommandContext = {
         user: isInteraction ? input.user : input.author,
         member: input.member as GuildMember,
@@ -50,7 +62,10 @@ export function createCommandContext(input: ChatInputCommandInteraction | Messag
         },
 
         deferReply: async (options) => {
-            if (isInteraction) return input.deferReply({ flags: options?.ephemeral ? 64 : undefined });
+            if (isInteraction) {
+                if (input.replied || input.deferred) return;
+                return input.deferReply({ flags: options?.ephemeral ? 64 : undefined });
+            }
             // @ts-ignore
             if (input.channel?.sendTyping) await input.channel.sendTyping();
         },
@@ -96,6 +111,13 @@ export function createCommandContext(input: ChatInputCommandInteraction | Messag
             return isNaN(val) ? null : val;
         },
 
+        getChannel: (name: string) => {
+            if (isInteraction) return input.options.getChannel(name);
+            const mention = input.mentions.channels.first();
+            if (mention) return mention;
+            return null;
+        },
+
         options: {
             getUser: (name: string) => {
                 if (isInteraction) return input.options.getUser(name);
@@ -121,6 +143,13 @@ export function createCommandContext(input: ChatInputCommandInteraction | Messag
             getSubcommand: () => {
                 if (isInteraction) return input.options.getSubcommand();
                 return args[0] || null;
+            },
+            //@ts-ignore
+            getChannel: (name) => {
+                if (isInteraction) return input.options.getChannel(name);
+                const mention = input.mentions.channels.first();
+                if (mention) return mention;
+                return null;
             }
         }
     };

@@ -99,43 +99,7 @@ export default {
                 time: 5 * 60 * 1000,
             });
 
-            collector.on('collect', async (i: any) => {
-                await i.deferUpdate();
-                // We just need to trigger the resolve in the pendingAuths map
-                const pending = (registerPendingAuth as any).pendingAuths?.get(token);
-                // Actually, registerPendingAuth returns a promise, we should just let it resolve naturally
-                // or we can manually trigger the flow here. 
-                // Let's use the token command's logic essentially.
-                try {
-                    const { getSessionKey } = await import('../../libs/oauth');
-                    const { sessionKey, username } = await getSessionKey(token);
-                    const { saveUser } = await import('../../libs/userdata');
 
-                    await saveUser(context.user.id, {
-                        username,
-                        sessionKey,
-                        authorizedAt: new Date().toISOString(),
-                    });
-
-                    const successEmbed = new EmbedBuilder()
-                        .setColor(0x00ff00)
-                        .setTitle('✅ Manual Confirmation Successful!')
-                        .setDescription(`Your Last.fm account **${username}** has been linked.`)
-                        .setFooter({ text: 'Setup complete' });
-
-                    await context.followUp({
-                        embeds: [successEmbed],
-                        flags: MessageFlags.Ephemeral,
-                    });
-
-                    collector.stop('success');
-                } catch (err) {
-                    await i.followUp({
-                        content: '❌ No authorization found yet. Please make sure you clicked "Allow Access" on the Last.fm website first.',
-                        flags: MessageFlags.Ephemeral,
-                    });
-                }
-            });
 
             // Start polling in the background (fmbot style)
             const pollPromise = pollForSession(token);
@@ -154,10 +118,22 @@ export default {
                         .setDescription(`The Last.fm account **${sessionData.username}** is already linked to ${otherAccounts} other Discord accounts.\n\nTo prevent abuse, you cannot link more than ${MAX_OTHER_ACCOUNTS + 1} accounts to a single Last.fm user.`)
                         .setFooter({ text: 'Account Limit Reached' });
 
-                    await context.followUp({
-                        embeds: [altEmbed],
-                        flags: MessageFlags.Ephemeral,
-                    });
+                    try {
+                        await context.followUp({
+                            embeds: [altEmbed],
+                            flags: MessageFlags.Ephemeral,
+                        });
+                    } catch (followErr) {
+                        console.error('Error sending follow-up for too many accounts:', followErr);
+                        try {
+                            await context.editReply({
+                                embeds: [altEmbed],
+                                components: [],
+                            });
+                        } catch (editErr) {
+                            console.error('Error editing reply for too many accounts:', editErr);
+                        }
+                    }
                     return false;
                 }
 
@@ -173,10 +149,23 @@ export default {
                     .setDescription(`Your Last.fm account has been linked! You can now use all commands, including scrobbling.\n\n*${source === 'poll' ? 'Detected automatically' : source === 'manual' ? 'Manually confirmed' : 'Verified via redirect'}*`)
                     .setFooter({ text: 'Last.fm Connection' });
 
-                await context.followUp({
-                    embeds: [successEmbed],
-                    flags: MessageFlags.Ephemeral,
-                });
+                try {
+                    await context.followUp({
+                        embeds: [successEmbed],
+                        flags: MessageFlags.Ephemeral,
+                    });
+                } catch (followErr) {
+                    console.error('Error sending follow-up in processAuth:', followErr);
+                    // If followUp fails, try to edit the original reply instead
+                    try {
+                        await context.editReply({
+                            embeds: [successEmbed],
+                            components: [], // Remove buttons
+                        });
+                    } catch (editErr) {
+                        console.error('Error editing reply in processAuth:', editErr);
+                    }
+                }
 
                 collector.stop('success');
                 return true;
@@ -190,10 +179,14 @@ export default {
                     const sessionData = await getSessionKey(token);
                     await processAuth(sessionData, 'manual');
                 } catch (err) {
-                    await i.followUp({
-                        content: '❌ No authorization found yet. Please make sure you clicked "Allow Access" on the Last.fm website first.',
-                        flags: MessageFlags.Ephemeral,
-                    });
+                    try {
+                        await i.followUp({
+                            content: '❌ No authorization found yet. Please make sure you clicked "Allow Access" on the Last.fm website first.',
+                            flags: MessageFlags.Ephemeral,
+                        });
+                    } catch (followErr) {
+                        console.error('Error sending follow-up from button:', followErr);
+                    }
                 }
             });
 
@@ -203,16 +196,29 @@ export default {
                 pollPromise.then(res => res ? 'poll' : null)
             ]);
 
-            if (result) {
+            if (result && !collector.ended) {
                 if (result === 'poll') {
                     const data = await pollPromise;
                     if (data) await processAuth(data, 'poll');
                 } else if (result === 'redirect') {
                     // When redirected, the session is already in DB via oauth-server, 
                     // but we call processAuth to show the message (it will handle the upsert gracefully)
-                    const { getSessionKey } = await import('../../libs/oauth');
-                    const sessionData = await getSessionKey(token);
-                    await processAuth(sessionData, 'redirect');
+                    try {
+                        const { getSessionKey } = await import('../../libs/oauth');
+                        const sessionData = await getSessionKey(token);
+                        await processAuth(sessionData, 'redirect');
+                    } catch (err) {
+                        console.error('Error processing redirect auth:', err);
+                        // Try to send a simple success message since the auth worked but getting session data failed
+                        try {
+                            await context.followUp({
+                                content: '✅ Authorization successful! Your Last.fm account has been linked.',
+                                flags: MessageFlags.Ephemeral,
+                            });
+                        } catch (followErr) {
+                            console.error('Error sending follow-up message:', followErr);
+                        }
+                    }
                 }
             } else if (collector.ended && !result) {
                 const failEmbed = new EmbedBuilder()
@@ -221,10 +227,22 @@ export default {
                     .setDescription('The authorization timed out or failed. Please try again using `/link`.')
                     .setFooter({ text: 'Authorization expires after 5 minutes' });
 
-                await context.followUp({
-                    embeds: [failEmbed],
-                    flags: MessageFlags.Ephemeral,
-                });
+                try {
+                    await context.followUp({
+                        embeds: [failEmbed],
+                        flags: MessageFlags.Ephemeral,
+                    });
+                } catch (followErr) {
+                    console.error('Error sending follow-up for timeout:', followErr);
+                    try {
+                        await context.editReply({
+                            embeds: [failEmbed],
+                            components: [],
+                        });
+                    } catch (editErr) {
+                        console.error('Error editing reply for timeout:', editErr);
+                    }
+                }
             }
         } catch (error: any) {
 
