@@ -13,11 +13,12 @@ export interface RawImage {
 export interface LastFmTrack {
     name: string;
     artist: {
-        '#text': string;
+        name?: string;
         mbid?: string;
+        url?: string;
     };
     album?: {
-        '#text': string;
+        title: string;
         mbid?: string;
     };
     image?: RawImage[];

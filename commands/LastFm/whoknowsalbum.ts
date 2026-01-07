@@ -7,6 +7,7 @@ import {
 } from 'discord.js';
 import {getAlbumInfo, getImageUrl, getNowPlaying} from '../../libs/lastfm';
 import {loadUsers} from '../../libs/userdata';
+import {paginate} from '../../libs/pagination';
 
 export default {
     aliases: ['wka', 'albumplays'],
@@ -120,26 +121,29 @@ export default {
 
             results.sort((a, b) => b.playcount - a.playcount);
 
-            const embed = new EmbedBuilder()
-                .setColor(0xd51007)
-                .setTitle(`Who knows ${displayAlbumName} by ${displayArtistName} in ${guild.name}?`)
-                .setURL(albumUrl || null)
-                .setThumbnail(albumImage || null);
+	        const embeds: EmbedBuilder[] = [];
+	        const chunkSize = 10;
+	        for (let i = 0; i < results.length; i += chunkSize) {
+		        const chunk = results.slice(i, i + chunkSize);
+		        const embed = new EmbedBuilder()
+			        .setColor(0xd51007)
+			        .setTitle(`Who knows ${displayAlbumName} by ${displayArtistName} in ${guild.name}?`)
+			        .setURL(albumUrl || null)
+			        .setThumbnail(albumImage || null);
 
-            let description = '';
-            results.slice(0, 15).forEach((res, index) => {
-                const medal = index === 0 ? '👑 ' : `${index + 1}. `;
-                description += `${medal}**${res.discordTag}** (${res.username}) — **${res.playcount}** scrobbles\n`;
-            });
+		        let description = '';
+		        chunk.forEach((res, index) => {
+			        const globalIndex = i + index;
+			        const medal = globalIndex === 0 ? '👑 ' : `${globalIndex + 1}. `;
+			        description += `${medal}**${res.discordTag}** (${res.username}) — **${res.playcount}** scrobbles\n`;
+		        });
 
-            if (results.length > 15) {
-                description += `\n*...and ${results.length - 15} more*`;
-            }
+		        embed.setDescription(description.trim());
+		        embed.setFooter({text: `Total: ${results.length} listeners`});
+		        embeds.push(embed);
+	        }
 
-            embed.setDescription(description.trim());
-            embed.setFooter({ text: `Total: ${results.length} listeners` });
-
-            await context.editReply({ embeds: [embed] });
+	        await paginate(context, embeds);
 
         } catch (error: any) {
             console.error('Error in whoknowsalbum command:', error);

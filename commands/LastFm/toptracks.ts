@@ -7,6 +7,7 @@ import {
 } from 'discord.js';
 import {getImageUrl, getTopTracks} from '../../libs/lastfm';
 import {getUserData} from '../../libs/userdata';
+import {paginate} from '../../libs/pagination';
 
 
 const PERIOD_LABELS: Record<string, string> = {
@@ -44,9 +45,9 @@ export default {
         )
         .addIntegerOption(option =>
             option.setName('limit')
-                .setDescription('Number of tracks to show (1-10, default: 10)')
+                .setDescription('Number of tracks to show (1-50, default: 10)')
                 .setMinValue(1)
-                .setMaxValue(10)
+                .setMaxValue(50)
                 .setRequired(false)
         )
         .setIntegrationTypes([
@@ -84,34 +85,41 @@ export default {
                 return;
             }
 
-            const embed = new EmbedBuilder()
-                .setColor(0x1db954)
-                .setAuthor({
-                    name: `${targetUser.username}'s Top Tracks • ${PERIOD_LABELS[period]}`,
-                    iconURL: targetUser.displayAvatarURL(),
-                    url: `https://www.last.fm/user/${userData.username}`,
+            const embeds: EmbedBuilder[] = [];
+            const chunkSize = 10;
+            for (let i = 0; i < tracks.length; i += chunkSize) {
+                const chunk = tracks.slice(i, i + chunkSize);
+                const embed = new EmbedBuilder()
+                    .setColor(0x1db954)
+                    .setAuthor({
+                        name: `${targetUser.username}'s Top Tracks • ${PERIOD_LABELS[period]}`,
+                        iconURL: targetUser.displayAvatarURL(),
+                        url: `https://www.last.fm/user/${userData.username}`,
+                    });
+
+
+                let description = '';
+                chunk.forEach((track, index) => {
+                    const globalIndex = i + index;
+                    const artistName = track.artist.name;
+                    const plays = parseInt(track.playcount || '0').toLocaleString();
+                    description += `**${globalIndex + 1}.** [${track.name}](${track.url})\n`;
+                    description += `   *${artistName}* • ${plays} plays\n\n`;
                 });
 
-            let description = '';
-            tracks.forEach((track, index) => {
-                const artistName = (track.artist as any)['#text'] || track.artist;
-                const plays = parseInt(track.playcount || '0').toLocaleString();
-                description += `**${index + 1}.** [${track.name}](${track.url})\n`;
-                description += `   *${artistName}* • ${plays} plays\n\n`;
-            });
+                embed.setDescription(description.trim());
 
-            embed.setDescription(description.trim());
-
-            if (tracks.length > 0 && tracks[0]) {
-                const firstTrackImage = await getImageUrl(tracks[0].image);
-                if (firstTrackImage) {
-                    embed.setThumbnail(firstTrackImage);
+                if (chunk.length > 0 && chunk[0]) {
+                    const firstTrackImage = await getImageUrl(chunk[0].image);
+                    if (firstTrackImage) {
+                        embed.setThumbnail(firstTrackImage);
+                    }
                 }
+
+                embed.setFooter({text: `Last.fm • ${userData.username}`});
+                embeds.push(embed);
             }
-
-            embed.setFooter({ text: `Last.fm • ${userData.username}` });
-
-            await context.editReply({ embeds: [embed] });
+            await paginate(context, embeds);
         } catch (error: any) {
             console.error('Error fetching top tracks:', error);
             await context.editReply({
