@@ -49,7 +49,7 @@ export default {
                 );
 
             if (np) {
-                const artist = typeof np.artist === 'string' ? np.artist : np.artist['#text'];
+                const artist = np.artist.name || 'Unknown Artist';
                 embed.addFields({ name: '🎵 Currently Listening To', value: `**${np.name}** by **${artist}**` });
             }
 

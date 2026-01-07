@@ -23,7 +23,7 @@ export async function paginate(context: any, embeds: EmbedBuilder[], timeout = 6
 	);
 
 	const message = await context.editReply({
-		embeds: [embeds[currentPage]!.setFooter({text: `Page ${currentPage + 1} of ${embeds.length}`})],
+		embeds: [new EmbedBuilder(embeds[currentPage]!.toJSON()).setFooter({text: `Page ${currentPage + 1} of ${embeds.length}`})],
 		components: [row]
 	});
 
@@ -47,7 +47,7 @@ export async function paginate(context: any, embeds: EmbedBuilder[], timeout = 6
 		row.components[1]!.setDisabled(currentPage === embeds.length - 1);
 
 		await interaction.update({
-			embeds: [embeds[currentPage]!.setFooter({text: `Page ${currentPage + 1} of ${embeds.length}`})],
+			embeds: [new EmbedBuilder(embeds[currentPage]!.toJSON()).setFooter({text: `Page ${currentPage + 1} of ${embeds.length}`})],
 			components: [row]
 		});
 	});

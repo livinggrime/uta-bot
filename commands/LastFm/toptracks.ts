@@ -5,7 +5,7 @@ import {
     MessageFlags,
     SlashCommandBuilder
 } from 'discord.js';
-import {getImageUrl, getTopTracks} from '../../libs/lastfm';
+import {getTopTracks} from '../../libs/lastfm';
 import {getUserData} from '../../libs/userdata';
 import {paginate} from '../../libs/pagination';
 
@@ -61,7 +61,7 @@ export default {
         ]),
     async execute(context: any) {
         const targetUser = context.options.getUser('user') || context.user;
-        const period = context.options.getString('period') || 'overall';
+        const period = context.options.getString('period') || '7day';
         const limit = context.options.getInteger('limit') || 10;
         const userData = await getUserData(targetUser.id);
 
@@ -108,13 +108,6 @@ export default {
                 });
 
                 embed.setDescription(description.trim());
-
-                if (chunk.length > 0 && chunk[0]) {
-                    const firstTrackImage = await getImageUrl(chunk[0].image);
-                    if (firstTrackImage) {
-                        embed.setThumbnail(firstTrackImage);
-                    }
-                }
 
                 embed.setFooter({text: `Last.fm • ${userData.username}`});
                 embeds.push(embed);

@@ -61,7 +61,7 @@ export default {
         ]),
     async execute(context: any) {
         const targetUser = context.options.getUser('user') || context.user;
-        const period = context.options.getString('period') || 'overall';
+        const period = context.options.getString('period') || '7day';
         const limit = context.options.getInteger('limit') || 10;
         const userData = await getUserData(targetUser.id);
 

@@ -9,7 +9,7 @@ const clientOptions: mongoose.ConnectOptions = {
 };
 
 export async function connectToDatabase() {
-    const url = process.env.DATABASE_URL || 'mongodb+srv://bot:8nLn1KvvZHADJal4@cluster0.assciik.mongodb.net/uta?retryWrites=true&w=majority&appName=Cluster0';
+    const url = process.env.DATABASE_URL || 'mongodb://localhost:27017/mydatabase';
 
     try {
         await mongoose.connect(url, clientOptions);

@@ -53,8 +53,8 @@ export default {
             }
 
             const isNowPlaying = track['@attr']?.nowplaying === 'true';
-            const artistName = String(track.artist['#text'] || track.artist);
-            const albumName = String(track.album?.['#text'] || 'Unknown Album');
+            const artistName = String(track.artist?.name || track.artist);
+            const albumName = String(track.album?.title || 'Unknown Album');
             const imageUrl = await getImageUrl(track.image);
 
             const embed = new EmbedBuilder()
