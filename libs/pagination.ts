@@ -1,4 +1,4 @@
-import {ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, EmbedBuilder} from 'discord.js';
+import {ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, EmbedBuilder, ButtonInteraction} from 'discord.js';
 
 export async function paginate(context: any, embeds: EmbedBuilder[], timeout = 60000) {
 	if (embeds.length === 0) return;
@@ -10,16 +10,29 @@ export async function paginate(context: any, embeds: EmbedBuilder[], timeout = 6
 
 	const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
 		new ButtonBuilder()
+			.setCustomId('first')
+			.setLabel('First')
+			.setStyle(ButtonStyle.Primary)
+			.setDisabled(true)
+			.setEmoji('⏮️'),
+		new ButtonBuilder()
 			.setCustomId('prev')
 			.setLabel('Previous')
-			.setStyle(ButtonStyle.Primary)
+			.setStyle(ButtonStyle.Secondary)
 			.setDisabled(true)
 			.setEmoji('⬅️'),
 		new ButtonBuilder()
 			.setCustomId('next')
 			.setLabel('Next')
-			.setStyle(ButtonStyle.Primary)
+			.setStyle(ButtonStyle.Secondary)
+			.setDisabled(embeds.length === 1)
 			.setEmoji('➡️'),
+		new ButtonBuilder()
+			.setCustomId('last')
+			.setLabel('Last')
+			.setStyle(ButtonStyle.Primary)
+			.setDisabled(embeds.length === 1)
+			.setEmoji('⏭️')
 	);
 
 	const message = await context.editReply({
@@ -29,22 +42,26 @@ export async function paginate(context: any, embeds: EmbedBuilder[], timeout = 6
 
 	const collector = message.createMessageComponentCollector({
 		componentType: ComponentType.Button,
-		time: timeout
+		time: timeout,
+		filter: (interaction: ButtonInteraction) => interaction.user.id === (context.user?.id || context.author?.id)
 	});
 
-	collector.on('collect', async (interaction: any) => {
-		if (interaction.user.id !== (context.user?.id || context.author?.id)) {
-			return interaction.reply({content: 'You cannot use these buttons.', ephemeral: true});
-		}
+	collector.on('collect', async (interaction: ButtonInteraction) => {
 
-		if (interaction.customId === 'prev') {
+		if (interaction.customId === 'first') {
+			currentPage = 0;
+		} else if (interaction.customId === 'prev') {
 			currentPage--;
 		} else if (interaction.customId === 'next') {
 			currentPage++;
+		} else if (interaction.customId === 'last') {
+			currentPage = embeds.length - 1;
 		}
 
 		row.components[0]!.setDisabled(currentPage === 0);
-		row.components[1]!.setDisabled(currentPage === embeds.length - 1);
+		row.components[1]!.setDisabled(currentPage === 0);
+		row.components[2]!.setDisabled(currentPage === embeds.length - 1);
+		row.components[3]!.setDisabled(currentPage === embeds.length - 1);
 
 		await interaction.update({
 			embeds: [new EmbedBuilder(embeds[currentPage]!.toJSON()).setFooter({text: `Page ${currentPage + 1} of ${embeds.length}`})],
@@ -54,11 +71,7 @@ export async function paginate(context: any, embeds: EmbedBuilder[], timeout = 6
 
 	collector.on('end', async () => {
 		try {
-			const disabledRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
-				row.components[0]!.setDisabled(true),
-				row.components[1]!.setDisabled(true)
-			);
-			await context.editReply({components: [disabledRow]});
+			await context.editReply({components: []});
 		} catch (e) {
 			// Message might have been deleted
 		}

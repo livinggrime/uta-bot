@@ -4,6 +4,7 @@ import path from 'node:path';
 import {Client, Collection, GatewayIntentBits, Partials} from "discord.js";
 import {startOAuthServer} from './oauth-server';
 import {connectToDatabase} from './libs/database';
+import {commandCache} from './libs/cache';
 
 
 const TOKEN = process.env.TOKEN || '';
@@ -29,6 +30,24 @@ const client = new Client({
 
 client.commands = new Collection();
 client.cooldowns = new Collection();
+
+// Schedule cleanup for cooldowns every 5 minutes
+setInterval(() => {
+    const now = Date.now();
+    for (const [userId, cooldowns] of (client.cooldowns as any).entries()) {
+        const activeCooldowns = new Collection();
+        for (const [commandId, endTime] of (cooldowns as any).entries()) {
+            if (endTime > now) {
+                activeCooldowns.set(commandId, endTime);
+            }
+        }
+        if (activeCooldowns.size > 0) {
+            (client.cooldowns as any).set(userId, activeCooldowns);
+        } else {
+            (client.cooldowns as any).delete(userId);
+        }
+    }
+}, 300000);
 
 // Connect to MongoDB
 await connectToDatabase();

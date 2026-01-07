@@ -92,7 +92,7 @@ export default {
                 const embed = new EmbedBuilder()
                     .setColor(0xff6b35)
                     .setAuthor({
-                        name: `${targetUser.username}'s Top Albums • ${PERIOD_LABELS[period]}`,
+                        name: `${targetUser.globalName}'s Top Albums • ${PERIOD_LABELS[period]}`,
                         iconURL: targetUser.displayAvatarURL(),
                         url: `https://www.last.fm/user/${userData.username}`,
                     });
@@ -103,7 +103,7 @@ export default {
                     const artistName = album.artist.name;
                     const plays = parseInt(album.playcount || '0').toLocaleString();
                     description += `**${globalIndex + 1}.** [${album.name}](${album.url})\n`;
-                    description += `   *${artistName}* • ${plays} plays\n\n`;
+                    description += `   *${artistName}* • ${plays} plays\n`;
                 });
 
                 embed.setDescription(description.trim());

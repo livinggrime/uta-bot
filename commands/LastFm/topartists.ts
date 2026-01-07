@@ -92,7 +92,7 @@ export default {
                 const embed = new EmbedBuilder()
                     .setColor(0xd51007)
                     .setAuthor({
-                        name: `${targetUser.username}'s Top Artists • ${PERIOD_LABELS[period]}`,
+                        name: `${targetUser.globalName}'s Top Artists • ${PERIOD_LABELS[period]}`,
                         iconURL: targetUser.displayAvatarURL(),
                         url: `https://www.last.fm/user/${userData.username}`,
                     });
@@ -102,7 +102,7 @@ export default {
                     const globalIndex = i + index;
                     const plays = parseInt(artist.playcount).toLocaleString();
                     description += `**${globalIndex + 1}.** [${artist.name}](${artist.url}) \`-\``;
-                    description += `   ${plays} plays\n\n`;
+                    description += `   ${plays} plays\n`;
                 });
 
                 embed.setDescription(description.trim());

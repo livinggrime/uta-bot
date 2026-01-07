@@ -1,5 +1,5 @@
 import {ApplicationIntegrationType, EmbedBuilder, InteractionContextType, SlashCommandBuilder} from 'discord.js';
-import {loadUsers} from '../../libs/userdata';
+import {loadUsers, loadUsersByIds} from '../../libs/userdata';
 import {getImageUrl, getNowPlaying, getUserInfo} from '../../libs/lastfm';
 
 export default {
@@ -42,7 +42,7 @@ export default {
                 .setColor(0xd51007)
                 .setTitle(`Featured User: ${userInfo.name}`)
                 .setURL(userInfo.url)
-                .setThumbnail(await getImageUrl(userInfo.image))
+                .setThumbnail(await getImageUrl(userInfo.image) || null)
                 .addFields(
                     { name: '📊 Total Scrobbles', value: parseInt(userInfo.playcount).toLocaleString(), inline: true },
                     { name: '📅 Member Since', value: `<t:${userInfo.registered.unixtime}:D>`, inline: true }

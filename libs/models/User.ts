@@ -18,4 +18,8 @@ const UserSchema: Schema = new Schema({
     spotifyRefreshToken: { type: String },
 });
 
+// Add indexes for better query performance
+UserSchema.index({ username: 1 });
+UserSchema.index({ authorizedAt: 1 });
+
 export default mongoose.model<IUser>('User', UserSchema);

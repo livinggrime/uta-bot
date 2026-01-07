@@ -1,5 +1,6 @@
-import dotenv from 'dotenv';
-import {searchSpotifyImage} from './spotify';
+import dotenv from "dotenv";
+import { searchSpotifyImage } from "./spotify";
+import { lastfmCache, requestDeduplicator } from "./cache";
 
 dotenv.config();
 
@@ -14,11 +15,12 @@ export interface LastFmTrack {
     name: string;
     artist: {
         name?: string;
+        '#text'?: string;
         mbid?: string;
         url?: string;
     };
     album?: {
-        title: string;
+        '#text': string;
         mbid?: string;
     };
     image?: RawImage[];
@@ -68,36 +70,133 @@ export interface LastFmUser {
     image?: string | RawImage[];
 }
 
-async function makeRequest(params: Record<string, string>): Promise<any> {
-    const url = new URL(BASE_URL);
-    url.searchParams.append('api_key', FMKEY);
-    url.searchParams.append('format', 'json');
+const pendingRequests = new Map<string, Promise<any>>();
 
-    for (const [key, value] of Object.entries(params)) {
-        url.searchParams.append(key, value);
+async function makeRequestWithRetry(params: Record<string, string>, ttl?: number, retries: number = 2): Promise<any> {
+    let lastError: any;
+    
+    for (let attempt = 0; attempt <= retries; attempt++) {
+        try {
+            return await makeRequest(params, ttl);
+        } catch (error: any) {
+            lastError = error;
+            
+            // Don't retry on certain errors
+            if (error.message.includes('User not found') || 
+                error.message.includes('rate limit exceeded') ||
+                error.message.includes('Invalid Last.fm API response')) {
+                throw error;
+            }
+            
+            // Exponential backoff for retries
+            if (attempt < retries) {
+                const delay = Math.min(1000 * Math.pow(2, attempt), 5000);
+                await new Promise(resolve => setTimeout(resolve, delay));
+            }
+        }
     }
+    
+    throw lastError;
+}
 
-    const response = await fetch(url.toString());
-
-    if (!response.ok) {
-        throw new Error(`Last.fm API error: ${response.status} ${response.statusText}`);
+function createCacheKey(params: Record<string, string>): string {
+    const sortedParams: Record<string, string> = {};
+    const sortedKeys = Object.keys(params).sort();
+    
+    for (const key of sortedKeys) {
+        const value = params[key];
+        if (value !== null && value !== undefined && value !== '') {
+            sortedParams[key] = value;
+        }
     }
+    
+    return JSON.stringify(sortedParams);
+}
 
-    const data: any = await response.json();
+async function makeRequest(params: Record<string, string>, ttl?: number): Promise<any> {
+    const cacheKey = createCacheKey(params);
+    
+    const cached = lastfmCache.get(cacheKey);
+    if (cached) return cached;
 
-    if (data.error) {
-        throw new Error(`Last.fm API error: ${data.message}`);
-    }
+    return requestDeduplicator.deduplicate(cacheKey, async () => {
+        const url = new URL(BASE_URL);
+        url.searchParams.append('api_key', FMKEY);
+        url.searchParams.append('format', 'json');
 
-    return data;
+        // Validate required parameters
+        if (!params.method) {
+            throw new Error('Last.fm API method is required');
+        }
+
+        for (const [key, value] of Object.entries(params)) {
+            // Skip null/undefined values
+            if (value !== null && value !== undefined && value !== '') {
+                url.searchParams.append(key, value);
+            }
+        }
+
+        // Add timeout to prevent hanging requests
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+        try {
+            const response = await fetch(url.toString(), {
+                signal: controller.signal,
+                headers: {
+                    'User-Agent': 'UTABot/1.0'
+                }
+            });
+
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                // Handle specific HTTP errors
+                if (response.status === 429) {
+                    throw new Error('Last.fm API rate limit exceeded. Please try again later.');
+                } else if (response.status >= 500) {
+                    throw new Error('Last.fm API server error. Please try again later.');
+                } else {
+                    throw new Error(`Last.fm API error: ${response.status} ${response.statusText}`);
+                }
+            }
+
+            const data: any = await response.json();
+
+            if (data.error) {
+                // Handle specific Last.fm API errors
+                if (data.error === 6) {
+                    throw new Error('User not found or does not exist.');
+                } else if (data.error === 8) {
+                    throw new Error('Operation failed. Please try again.');
+                } else {
+                    throw new Error(`Last.fm API error: ${data.message || data.error}`);
+                }
+            }
+
+            // Validate response structure
+            if (!data || typeof data !== 'object') {
+                throw new Error('Invalid Last.fm API response');
+            }
+
+            lastfmCache.set(cacheKey, data, ttl);
+            return data;
+        } catch (error: any) {
+            clearTimeout(timeoutId);
+            if (error?.name === 'AbortError') {
+                throw new Error('Last.fm API request timeout');
+            }
+            throw error;
+        }
+    });
 }
 
 export async function getRecentTracks(username: string, limit: number = 10): Promise<LastFmTrack[]> {
-    const data = await makeRequest({
+    const data = await makeRequestWithRetry({
         method: 'user.getrecenttracks',
         user: username,
         limit: limit.toString(),
-    });
+    }, 60000);
 
     if (!data.recenttracks || !data.recenttracks.track) {
         return [];
@@ -121,12 +220,12 @@ export async function getNowPlaying(username: string): Promise<LastFmTrack | nul
 }
 
 export async function getTopArtists(username: string, period: string = 'overall', limit: number = 10): Promise<LastFmArtist[]> {
-    const data = await makeRequest({
+    const data = await makeRequestWithRetry({
         method: 'user.gettopartists',
         user: username,
         period: period,
         limit: limit.toString(),
-    });
+    }, 1800000);
 
     if (!data.topartists || !data.topartists.artist) {
         return [];
@@ -140,31 +239,29 @@ export async function getTopArtists(username: string, period: string = 'overall'
 }
 
 export async function getTopTracks(username: string, period: string = 'overall', limit: number = 10): Promise<LastFmTrack[]> {
-    const data = await makeRequest({
+    const data = await makeRequestWithRetry({
         method: 'user.gettoptracks',
         user: username,
         period: period,
         limit: limit.toString(),
-    });
+    }, 1800000);
 
     if (!data.toptracks || !data.toptracks.track) {
         return [];
     }
 
-    const tracks = Array.isArray(data.toptracks.track)
+    return Array.isArray(data.toptracks.track)
         ? data.toptracks.track
         : [data.toptracks.track];
-
-    return tracks;
 }
 
 export async function getTopAlbums(username: string, period: string = 'overall', limit: number = 10): Promise<LastFmAlbum[]> {
-    const data = await makeRequest({
+    const data = await makeRequestWithRetry({
         method: 'user.gettopalbums',
         user: username,
         period: period,
         limit: limit.toString(),
-    });
+    }, 1800000);
 
     if (!data.topalbums || !data.topalbums.album) {
         return [];
@@ -178,13 +275,13 @@ export async function getTopAlbums(username: string, period: string = 'overall',
 }
 
 export async function getUserInfo(username: string): Promise<LastFmUser> {
-    const data = await makeRequest({
+    const data = await makeRequestWithRetry({
         method: 'user.getinfo',
         user: username,
     });
 
     if (!data.user) {
-        throw new Error('User not found');
+        throw new Error('User not found: ${username}');
     }
 
     return data.user;
@@ -200,7 +297,7 @@ export async function getArtistInfo(artist: string, username?: string): Promise<
         params.username = username;
     }
 
-    const data = await makeRequest(params);
+    const data = await makeRequestWithRetry(params, 3600000);
     return data.artist;
 }
 
@@ -215,7 +312,7 @@ export async function getAlbumInfo(artist: string, album: string, username?: str
         params.username = username;
     }
 
-    const data = await makeRequest(params);
+    const data = await makeRequestWithRetry(params, 3600000);
     return data.album;
 }
 
@@ -230,7 +327,7 @@ export async function getTrackInfo(artist: string, track: string, username?: str
         params.username = username;
     }
 
-    const data = await makeRequest(params);
+    const data = await makeRequestWithRetry(params, 3600000);
     return data.track;
 }
 
@@ -242,29 +339,39 @@ export async function getImageUrl(images?: string | Array<{ '#text': string; siz
         if (typeof images === 'string') {
             url = images.length > 0 ? images : null;
         } else if (images.length > 0) {
-            // Prefer extralarge, then large, then medium
-            const extralarge = images.find(img => img.size === 'extralarge');
-            if (extralarge && extralarge['#text']) url = extralarge['#text'];
-            else {
-                const large = images.find(img => img.size === 'large');
-                if (large && large['#text']) url = large['#text'];
-                else {
-                    const medium = images.find(img => img.size === 'medium');
-                    if (medium && medium['#text']) url = medium['#text'];
-                    else {
-                        const lastImage = images[images.length - 1];
-                        if (lastImage && lastImage['#text']) url = lastImage['#text'];
+            // Check for animated GIFs first - prioritize them over static images
+            const gifImage = images.find(img => 
+                img['#text'] && img['#text'].toLowerCase().includes('.gif')
+            );
+            if (gifImage && gifImage['#text']) {
+                url = gifImage['#text'];
+            } else {
+                // Prefer extralarge, then large, then medium for static images
+                const sizeOrder = ['extralarge', 'large', 'medium', 'small'];
+                for (const size of sizeOrder) {
+                    const img = images.find(img => img.size === size);
+                    if (img && img['#text'] && !img['#text'].includes('2a96cbd8b46e442fc41c2b86b821562f')) {
+                        url = img['#text'];
+                        break;
+                    }
+                }
+                
+                // Fallback to last available image
+                if (!url) {
+                    const lastImage = images[images.length - 1];
+                    if (lastImage && lastImage['#text']) {
+                        url = lastImage['#text'];
                     }
                 }
             }
         }
     }
 
-    // List of known placeholder images or patterns
+    // Check if we have a valid URL
     const isPlaceholder = !url || url.includes('2a96cbd8b46e442fc41c2b86b821562f') || url.length === 0;
 
     if (isPlaceholder && type && artistName) {
-        // Query Spotify
+        // Query Spotify for fallback image
         const query = type === 'artist' ? artistName : `${artistName} ${itemName || ''}`;
         const spotifyUrl = await searchSpotifyImage(query.trim(), type);
         if (spotifyUrl) return spotifyUrl;

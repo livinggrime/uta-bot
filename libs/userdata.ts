@@ -31,6 +31,31 @@ export async function loadUsers(): Promise<Record<string, UserData>> {
 }
 
 /**
+ * Loads users only for specific Discord IDs.
+ * @param discordIds Array of Discord user IDs to load
+ * @returns A record of user data keyed by Discord User ID.
+ */
+export async function loadUsersByIds(discordIds: string[]): Promise<Record<string, UserData>> {
+    try {
+        if (discordIds.length === 0) return {};
+        
+        const users = await User.find({ discordUserId: { $in: discordIds } });
+        const result: Record<string, UserData> = {};
+        for (const user of users) {
+            result[user.discordUserId] = {
+                username: user.username,
+                sessionKey: user.sessionKey,
+                authorizedAt: user.authorizedAt,
+            };
+        }
+        return result;
+    } catch (error) {
+        console.error('Error loading users by IDs from DB:', error);
+        return {};
+    }
+}
+
+/**
  * Saves a user's data to the database.
  * @param discordUserId The Discord user ID.
  * @param data The user data to save.

@@ -16,6 +16,7 @@ export interface CommandContext {
     isInteraction: boolean;
     interaction?: ChatInputCommandInteraction;
     message?: Message;
+    client: any;
 
     // Unified response methods
     reply: (content: any) => Promise<any>;
@@ -52,6 +53,7 @@ export function createCommandContext(input: ChatInputCommandInteraction | Messag
         isInteraction,
         interaction: isInteraction ? input : undefined,
         message: !isInteraction ? input : undefined,
+        client: input.client,
 
         reply: async (content) => {
             if (isInteraction) {

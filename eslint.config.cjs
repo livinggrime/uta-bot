@@ -5,6 +5,22 @@ module.exports = [
 	{
 		languageOptions: {
 			ecmaVersion: 'latest',
+			sourceType: 'module',
+			globals: {
+				console: 'readonly',
+				process: 'readonly',
+				Buffer: 'readonly',
+				__dirname: 'readonly',
+				__filename: 'readonly',
+				module: 'readonly',
+				require: 'readonly',
+				exports: 'readonly',
+				global: 'readonly',
+				setTimeout: 'readonly',
+				clearTimeout: 'readonly',
+				setInterval: 'readonly',
+				clearInterval: 'readonly',
+			},
 		},
 		rules: {
 			'arrow-spacing': ['warn', { before: true, after: true }],

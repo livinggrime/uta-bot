@@ -5,8 +5,8 @@ import {
     MessageFlags,
     SlashCommandBuilder
 } from 'discord.js';
-import {getArtistInfo, getImageUrl, getNowPlaying} from '../../libs/lastfm';
-import {loadUsers} from '../../libs/userdata';
+import {getArtistInfo, getImageUrl, getNowPlaying, getUserInfo} from '../../libs/lastfm';
+import {loadUsers, loadUsersByIds} from '../../libs/userdata';
 import {paginate} from '../../libs/pagination';
 
 export default {
@@ -43,15 +43,22 @@ export default {
         await context.deferReply();
 
         try {
-            const allUsers = await loadUsers();
+            const guild = context.interaction?.guild || context.message?.guild;
+            if (!guild) return context.editReply('❌ Could not find server info.');
+
+            const guildMembers = await guild.members.fetch();
+            const memberIds: string[] = Array.from(guildMembers.keys());
+            
+            // Only load users who are actually in this guild
+            const guildUsers = await loadUsersByIds(memberIds);
 
             // If no artist provided, try to get from user's now playing
             if (!artistName) {
-                const userData = allUsers[context.user.id];
+                const userData = guildUsers[context.user.id];
                 if (userData) {
                     const np = await getNowPlaying(userData.username);
                     if (np) {
-                        artistName = typeof np.artist === 'string' ? np.artist : np.artist['#text'];
+                        artistName = np.artist['#text'];
                     }
                 }
             }
@@ -62,13 +69,7 @@ export default {
                 });
             }
 
-            // For guild members, we need to handle interaction vs message
-            const guild = context.interaction?.guild || context.message?.guild;
-            if (!guild) return context.editReply('❌ Could not find server info.');
-
-            const guildMembers = await guild.members.fetch();
-
-            const linkedMembers = Object.entries(allUsers).filter(([discordId]) =>
+            const linkedMembers = Object.entries(guildUsers).filter(([discordId]) =>
                 guildMembers.has(discordId)
             );
 
@@ -78,42 +79,67 @@ export default {
                 });
             }
 
-            const results: { username: string; discordTag: string; playcount: number }[] = [];
             let displayArtistName = artistName;
             let artistUrl = '';
             let artistImage = '';
 
-            // Fetch playcounts for all linked members in the guild
-            const promises = linkedMembers.map(async ([discordId, userData]) => {
+            // Batch fetch artist info for all users
+            const artistPromises = linkedMembers.map(async ([discordId, userData]) => {
                 try {
                     const artistInfo = await getArtistInfo(artistName!, userData.username);
                     if (artistInfo && artistInfo.stats && artistInfo.stats.userplaycount) {
                         const count = parseInt(artistInfo.stats.userplaycount);
                         if (count > 0) {
-                            const member = guildMembers.get(discordId);
-                            results.push({
+                            return {
+                                discordId,
+                                playcount: count,
                                 username: userData.username,
-                                discordTag: member ? member.user.username : 'Unknown',
-                                playcount: count
-                            });
+                                artistInfo
+                            };
                         }
-
-                        // Pick up global info from the first successful request
-                        if (artistInfo.name) displayArtistName = artistInfo.name;
-                        if (artistInfo.url) artistUrl = artistInfo.url;
-                        if (artistInfo.image) artistImage = await getImageUrl(artistInfo.image, 'artist', artistInfo.name) || '';
                     }
+                    return null;
                 } catch (e) {
-                    // Ignore errors for individual users
+                    return null;
                 }
             });
 
-            await Promise.all(promises);
+            const artistResults = await Promise.all(artistPromises);
+            const validUsers = artistResults.filter(result => result !== null);
 
-            if (results.length === 0) {
+            if (validUsers.length === 0) {
                 return context.editReply({
                     content: `❌ No one in this server has scrobbled **${artistName}** yet.`
                 });
+            }
+
+            // Pick up global info from the first successful request
+            const firstValid = validUsers[0]!;
+            if (firstValid.artistInfo.name) displayArtistName = firstValid.artistInfo.name;
+            if (firstValid.artistInfo.url) artistUrl = firstValid.artistInfo.url;
+
+            // Batch fetch user info only for users who have playcounts
+            const userPromises = validUsers.map(async (user) => {
+                try {
+                    const userInfo = await getUserInfo(user!.username);
+                    const member = guildMembers.get(user!.discordId);
+                    return {
+                        userurl: userInfo.url,
+                        discordName: member ? member.user.globalName || member.user.username : "Unknown",
+                        discordTag: member ? member.user.username : 'Unknown',
+                        playcount: user!.playcount
+                    };
+                } catch (e) {
+                    return null;
+                }
+            });
+
+            const userResults = await Promise.all(userPromises);
+            const results = userResults.filter(result => result !== null);
+
+            // Get artist image if available
+            if (firstValid.artistInfo.image) {
+                artistImage = await getImageUrl(firstValid.artistInfo.image, 'artist', firstValid.artistInfo.name) || '';
             }
 
             // Sort by playcount descending
@@ -125,15 +151,15 @@ export default {
 		        const chunk = results.slice(i, i + chunkSize);
 		        const embed = new EmbedBuilder()
 			        .setColor(0xd51007)
-			        .setTitle(`Who knows ${displayArtistName} in ${guild.name}?`)
+			        .setTitle(`${displayArtistName} in ${guild.name}?`)
 			        .setURL(artistUrl || null)
 			        .setThumbnail(artistImage || null);
 
 		        let description = '';
 		        chunk.forEach((res, index) => {
 			        const globalIndex = i + index;
-			        const medal = globalIndex === 0 ? '👑 ' : `${globalIndex + 1}. `;
-			        description += `${medal}**${res.discordTag}** (${res.username}) — **${res.playcount}** scrobbles\n`;
+			        const medal = globalIndex === 0 ? '1. ' : `${globalIndex + 1}. `;
+			        description += `${medal}**[${res.discordName}](${res.userurl})**  — **${res.playcount}** scrobbles\n`;
 		        });
 
 		        embed.setDescription(description.trim());

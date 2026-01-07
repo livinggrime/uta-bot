@@ -45,9 +45,8 @@ export default {
         )
         .addIntegerOption(option =>
             option.setName('limit')
-                .setDescription('Number of tracks to show (1-50, default: 10)')
+                .setDescription('Number of tracks to show (default: 10)')
                 .setMinValue(1)
-                .setMaxValue(50)
                 .setRequired(false)
         )
         .setIntegrationTypes([
@@ -62,7 +61,7 @@ export default {
     async execute(context: any) {
         const targetUser = context.options.getUser('user') || context.user;
         const period = context.options.getString('period') || '7day';
-        const limit = context.options.getInteger('limit') || 10;
+        const limit = context.options.getInteger('limit') || '500';
         const userData = await getUserData(targetUser.id);
 
         if (!userData) {
@@ -92,7 +91,7 @@ export default {
                 const embed = new EmbedBuilder()
                     .setColor(0x1db954)
                     .setAuthor({
-                        name: `${targetUser.username}'s Top Tracks • ${PERIOD_LABELS[period]}`,
+                        name: `${targetUser.globalName}'s Top Tracks • ${PERIOD_LABELS[period]}`,
                         iconURL: targetUser.displayAvatarURL(),
                         url: `https://www.last.fm/user/${userData.username}`,
                     });
@@ -101,10 +100,9 @@ export default {
                 let description = '';
                 chunk.forEach((track, index) => {
                     const globalIndex = i + index;
-                    const artistName = track.artist.name;
+                    const artistName = String(track.artist.name || track.artist);
                     const plays = parseInt(track.playcount || '0').toLocaleString();
-                    description += `**${globalIndex + 1}.** [${track.name}](${track.url})\n`;
-                    description += `   *${artistName}* • ${plays} plays\n\n`;
+                    description += `**${globalIndex + 1}.** [${track.name}](${track.url})--*${artistName}* • ${plays} plays\n`;
                 });
 
                 embed.setDescription(description.trim());

@@ -5,7 +5,10 @@ import path from 'node:path';
 dotenv.config({ path: path.join(process.cwd(), '.env') });
 
 const clientOptions: mongoose.ConnectOptions = {
-    serverApi: { version: '1', strict: false, deprecationErrors: true }
+    serverApi: { version: '1', strict: false, deprecationErrors: true },
+    maxPoolSize: 10,
+    serverSelectionTimeoutMS: 5000,
+    socketTimeoutMS: 45000
 };
 
 export async function connectToDatabase() {

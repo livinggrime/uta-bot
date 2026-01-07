@@ -1,4 +1,5 @@
 import {createCanvas, loadImage} from 'canvas';
+import {chartCache} from './cache';
 
 export interface ChartItem {
     name: string;
@@ -7,7 +8,29 @@ export interface ChartItem {
     imageUrl: string | null;
 }
 
+function generateChartKey(items: ChartItem[], dim: number): string {
+    const normalizedItems = items.map(item => ({
+        name: item.name || '',
+        secondary: item.secondary || '',
+        playcount: item.playcount || '0',
+        imageUrl: item.imageUrl || ''
+    }));
+    
+    const keyData = JSON.stringify({
+        dim,
+        items: normalizedItems.sort((a, b) => a.name.localeCompare(b.name))
+    });
+    
+    return Buffer.from(keyData).toString('base64');
+}
+
 export async function generateChart(items: ChartItem[], dim: number): Promise<Buffer> {
+    const cacheKey = generateChartKey(items, dim);
+    const cached = chartCache.get(cacheKey);
+    
+    if (cached) {
+        return cached;
+    }
     const cellSize = 300;
     const canvas = createCanvas(dim * cellSize, dim * cellSize);
     const ctx = canvas.getContext('2d');
@@ -73,5 +96,9 @@ export async function generateChart(items: ChartItem[], dim: number): Promise<Bu
 
     await Promise.all(drawPromises);
 
-    return canvas.toBuffer('image/png');
+    const buffer = canvas.toBuffer('image/png');
+    
+    chartCache.set(cacheKey, buffer);
+
+    return buffer;
 }

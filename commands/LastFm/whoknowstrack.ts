@@ -5,7 +5,7 @@ import {
     MessageFlags,
     SlashCommandBuilder
 } from 'discord.js';
-import {getImageUrl, getNowPlaying, getTrackInfo} from '../../libs/lastfm';
+import {getImageUrl, getNowPlaying, getTrackInfo, getUserInfo} from '../../libs/lastfm';
 import {loadUsers} from '../../libs/userdata';
 import {paginate} from '../../libs/pagination';
 
@@ -57,7 +57,7 @@ export default {
                 if (userData) {
                     const np = await getNowPlaying(userData.username);
                     if (np) {
-                        artistName = typeof np.artist === 'string' ? np.artist : np.artist['#text'];
+                        artistName = np.artist['#text'];
                         trackName = np.name;
                     }
                 }
@@ -83,7 +83,11 @@ export default {
                 });
             }
 
-            const results: { username: string; discordTag: string; playcount: number }[] = [];
+            const results: {
+                discordName: string;
+                userurl: string;
+                discordTag: string; 
+                playcount: number }[] = [];
             let displayArtistName = artistName;
             let displayTrackName = trackName;
             let trackUrl = '';
@@ -92,14 +96,16 @@ export default {
             const promises = linkedMembers.map(async ([discordId, userData]) => {
                 try {
                     const info = await getTrackInfo(artistName!, trackName!, userData.username);
+                    const userInfo = await getUserInfo(userData.username!);
                     if (info && info.userplaycount) {
                         const count = parseInt(info.userplaycount);
                         if (count > 0) {
                             const member = guildMembers.get(discordId);
                             results.push({
-                                username: userData.username,
+                                userurl: userInfo.url,
                                 discordTag: member ? member.user.username : 'Unknown',
-                                playcount: count
+                                playcount: count,
+                                discordName: member ? member.globalName : 'Unknown'
                             });
                         }
 
@@ -127,7 +133,7 @@ export default {
 		        const chunk = results.slice(i, i + chunkSize);
 		        const embed = new EmbedBuilder()
 			        .setColor(0xd51007)
-			        .setTitle(`Who knows ${displayTrackName} by ${displayArtistName} in ${guild.name}?`)
+			        .setTitle(`${displayTrackName} by ${displayArtistName} in ${guild.name}?`)
 			        .setURL(trackUrl || null)
 			        .setThumbnail(trackImage || null);
 
@@ -135,7 +141,7 @@ export default {
 		        chunk.forEach((res, index) => {
 			        const globalIndex = i + index;
 			        const medal = globalIndex === 0 ? '👑 ' : `${globalIndex + 1}. `;
-			        description += `${medal}**${res.discordTag}** (${res.username}) — **${res.playcount}** scrobbles\n`;
+			        description += `${medal}**[${res.discordName}](${res.userurl})** — **${res.playcount}** scrobbles\n`;
 		        });
 
 		        embed.setDescription(description.trim());

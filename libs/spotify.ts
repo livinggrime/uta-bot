@@ -163,7 +163,7 @@ export async function searchSpotifyImage(query: string, type: 'artist' | 'album'
 
 // User playback controls
 export const SpotifyPlayer = {
-    getNowPlaying: async (accessToken: string) => spotifyRequest('/me/player/currently-playing', accessToken),
+    getNowPlaying: async (accessToken: string) => spotifyRequest('/me/player/currently-playing', accessToken, 'GET'),
     play: async (accessToken: string) => spotifyRequest('/me/player/play', accessToken, 'PUT'),
     pause: async (accessToken: string) => spotifyRequest('/me/player/pause', accessToken, 'PUT'),
     next: async (accessToken: string) => spotifyRequest('/me/player/next', accessToken, 'POST'),
